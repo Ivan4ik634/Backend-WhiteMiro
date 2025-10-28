@@ -3,9 +3,9 @@ import { v2 as cloudinary } from 'cloudinary';
 import * as streamifier from 'streamifier';
 
 cloudinary.config({
-  cloud_name: 'dshkbuopu',
-  api_key: '511749955766279',
-  api_secret: '90_uRqgavznEzTGwTDle6ZVQBZ4',
+  cloud_name: process.env.CLOUDINARY_NAME!,
+  api_key: process.env.CLOUDINARY_API_KEY!,
+  api_secret: process.env.CLOUDINARY_API_SECRET!,
 });
 @Injectable()
 export class UploadService {

@@ -14,7 +14,7 @@ export class NotificationService {
       const res = await axios.post(
         'https://api.onesignal.com/notifications?c=push',
         {
-          app_id: '843913d7-6e97-42a2-9aac-62fe3c27b9a1',
+          app_id: process.env.ONESIGNAL_API_ID!,
           include_player_ids: playerIds,
           headings: { en: title },
           contents: { en: message },
@@ -27,8 +27,7 @@ export class NotificationService {
         {
           headers: {
             accept: 'application/json',
-            Authorization:
-              'Key os_v2_app_qq4rhv3os5bkfgvmml7dyj5zuhvowilxf2welxnnwqj3pju46bqoup3op5ogavfnsanldyai44zuyadsm2qzb4ml453jffdnm4ozeiy',
+            Authorization: `Key ${process.env.ONESIGNAL_API_SECRET!}`,
             'content-type': 'application/json',
           },
         },
