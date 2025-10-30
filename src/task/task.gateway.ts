@@ -102,7 +102,10 @@ export class TaskGateway {
       }),
     );
 
-    const newTask = await this.taskModel.create({ ...payload });
+    const newTask = await this.taskModel.create({
+      ...payload,
+      boardId: board._id,
+    });
     await this.boardModel.updateOne({ _id: board._id }, { $inc: { tasks: 1 } });
 
     const task = await this.taskModel.findById(newTask._id);
