@@ -57,9 +57,12 @@ export class BoardService {
 
     const boardIds = boards.map((b) => b._id);
 
-    const tasks = await this.taskModel.find({
-      boardId: { $in: boardIds },
-    });
+    const tasks = await this.taskModel
+      .find({
+        boardId: { $in: boardIds },
+      })
+      .populate('boardId')
+      .populate('userId');
 
     const totalTasks = await this.taskModel.countDocuments({
       boardId: { $in: boardIds },
