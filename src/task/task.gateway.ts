@@ -129,7 +129,7 @@ export class TaskGateway {
 
     // Формируем апдейт корректно
     const updateQuery: any = {
-      $set: { ...payload },
+      $set: { ...payload, boardId: board._id },
     };
 
     // Если есть edges — пушим отдельно
