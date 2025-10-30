@@ -125,7 +125,7 @@ export class TaskGateway {
       !board.members.some((el) => String(el) === payload.userId)
     )
       return { message: 'Access denied' };
-
+      console.log(payload,task)
     await this.taskModel.updateOne(
       { _id: payload._id },
       { ...payload, $push: { edges: payload.edge } },
