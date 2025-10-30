@@ -117,38 +117,49 @@ export class TaskGateway {
   async update(client: Socket, payload: UpdateTaskDto) {
     const task = await this.taskModel.findOne({ _id: payload._id });
     if (!task) return { message: 'Task not found' };
-    const board = await this.boardModel.findOne({ _id: task?.boardId });
+
+    const board = await this.boardModel.findOne({ _id: task.boardId });
     if (!board) return { message: 'Board not found' };
 
-    if (
-      board.userId !== payload.userId &&
-      !board.members.some((el) => String(el) === payload.userId)
-    )
-      return { message: 'Access denied' };
-      console.log(payload,task)
-    await this.taskModel.updateOne(
-      { _id: payload._id },
-      { ...payload, $push: { edges: payload.edge } },
-    );
-    if (payload.isDone && task.isDone === false) {
-      await this.boardModel.updateOne(
-        { _id: board._id },
-        { $inc: { taskDone: 1 } },
-      );
+    const hasAccess =
+      String(board.userId) === payload.userId ||
+      board.members.some((el) => String(el) === payload.userId);
+
+    if (!hasAccess) return { message: 'Access denied' };
+
+    // Формируем апдейт корректно
+    const updateQuery: any = {
+      $set: { ...payload },
+    };
+
+    // Если есть edges — пушим отдельно
+    if (payload.edge) {
+      updateQuery.$push = { edges: payload.edge };
     }
-    if (!payload.isDone && task.isDone === true) {
+
+    // Обновляем задачу
+    await this.taskModel.updateOne({ _id: payload._id }, updateQuery);
+
+    // Проверяем изменение статуса задачи
+    if (payload.isDone !== task.isDone) {
+      const incValue = payload.isDone ? 1 : -1;
       await this.boardModel.updateOne(
         { _id: board._id },
-        { $inc: { taskDone: -1 } },
+        { $inc: { tasksDone: incValue } },
       );
     }
 
-    const taskUpdated = await this.taskModel.findOne({ _id: payload._id });
+    // Получаем обновлённую задачу
+    const taskUpdated = await this.taskModel.findById(payload._id);
 
+    // Отправляем событие всем участникам комнаты
     this.server
       .to(payload.roomId)
       .emit('task:updated', { userId: payload.userId, task: taskUpdated });
+
+    return { success: true };
   }
+
   @SubscribeMessage('task:delete')
   async delete(
     client: Socket,
