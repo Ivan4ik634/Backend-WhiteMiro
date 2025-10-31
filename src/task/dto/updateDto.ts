@@ -8,3 +8,9 @@ export class UpdateTaskDto {
   y: number;
   edge: { from: string; to: string };
 }
+export class UpdateTaskIsDoneDto {
+  _id: string;
+  userId: string;
+  roomId: string;
+  isDone: boolean;
+}

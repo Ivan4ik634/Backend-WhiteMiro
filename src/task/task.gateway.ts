@@ -13,7 +13,7 @@ import { Settings } from 'src/shemes/Settings.scheme';
 import { Task } from 'src/shemes/Task.scheme';
 import { User } from 'src/shemes/User.scheme';
 import { CreateTaskDto } from './dto/createDto';
-import { UpdateTaskDto } from './dto/updateDto';
+import { UpdateTaskDto, UpdateTaskIsDoneDto } from './dto/updateDto';
 
 @WebSocketGateway({
   origin: '*',
@@ -111,6 +111,43 @@ export class TaskGateway {
     const task = await this.taskModel.findById(newTask._id);
 
     this.server.to(payload.roomId).emit('task:created', task);
+  }
+  @SubscribeMessage('task:update:isDone')
+  async updateIsDone(client: Socket, payload: UpdateTaskIsDoneDto) {
+    const task = await this.taskModel.findOne({ _id: payload._id });
+    if (!task) return { message: 'Task not found' };
+
+    const board = await this.boardModel.findOne({ _id: task.boardId });
+    if (!board) return { message: 'Board not found' };
+
+    const hasAccess =
+      String(board.userId) === payload.userId ||
+      board.members.some((el) => String(el) === payload.userId);
+
+    if (!hasAccess) return { message: 'Access denied' };
+
+    const updateQuery: any = {
+      $set: { isDone: payload.isDone },
+    };
+
+    await this.taskModel.updateOne({ _id: payload._id }, updateQuery);
+
+    const incValue = payload.isDone ? 1 : -1;
+    await this.boardModel.updateOne(
+      { _id: board._id },
+      { $inc: { tasksDone: incValue } },
+    );
+
+    // Получаем обновлённую задачу
+    const taskUpdated = await this.taskModel.findById(payload._id);
+
+    // Отправляем событие всем участникам комнаты
+    this.server.to(payload.roomId).emit('task:updated:isDone', {
+      userId: payload.userId,
+      task: taskUpdated,
+    });
+
+    return { success: true };
   }
 
   @SubscribeMessage('task:update')
