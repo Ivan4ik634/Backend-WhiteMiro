@@ -171,7 +171,12 @@ export class TaskGateway {
 
     // Если есть edges — пушим отдельно
     if (payload.edge) {
-      updateQuery.$push = { edges: payload.edge };
+      const taskFrom = await this.taskModel.findOne({ _id: payload.edge.from });
+      if (!taskFrom) return { message: 'Task not found' };
+
+      const taskTo = await this.taskModel.findOne({ _id: payload.edge.to });
+      if (!taskTo) return { message: 'Task not found' };
+      updateQuery.$push = { edges: { from: taskFrom._id, to: taskTo._id } };
     }
 
     // Обновляем задачу

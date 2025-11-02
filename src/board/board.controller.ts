@@ -56,6 +56,15 @@ export class BoardController {
   boardInviteUser(@CurrectUser() userId: string, @Param('id') id: string) {
     return this.boardService.invite(userId, id);
   }
+  @Post('/kick/:id')
+  @UseGuards(AuthGuard)
+  boardKickUser(
+    @CurrectUser() userId: string,
+    @Param('id') id: string,
+    @Body('targetUserId') targetUserId: string,
+  ) {
+    return this.boardService.kick(userId, id, targetUserId);
+  }
 
   @Patch(':id')
   @UseGuards(AuthGuard)

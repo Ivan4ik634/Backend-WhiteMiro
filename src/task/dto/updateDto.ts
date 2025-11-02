@@ -3,6 +3,7 @@ export class UpdateTaskDto {
   userId: string;
   roomId: string;
   text: string;
+  title: string;
   isDone: boolean;
   x: number;
   y: number;

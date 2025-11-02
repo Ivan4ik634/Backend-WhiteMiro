@@ -166,6 +166,16 @@ export class BoardService {
     }
     return { message: 'User invited' };
   }
+  async kick(userId: string, id: string, targetUserId: string) {
+    const board = await this.boardModel.findOne({ _id: id });
+    if (!board) return { message: 'Board not found' };
+    if (board.userId !== userId) return { message: 'Access denied' };
+    await this.boardModel.updateOne(
+      { _id: id },
+      { $pull: { members: targetUserId } },
+    );
+    return { message: 'User kicked' };
+  }
 
   async toggleLike(id: string, userId: string) {
     const board = await this.boardModel.findOne({ _id: id });
@@ -203,13 +213,12 @@ export class BoardService {
     if (board.userId === userId) {
       await this.boardModel.deleteOne({ _id: id });
       return { message: 'Board deleted' };
+    } else {
+      await this.boardModel.updateOne(
+        { _id: id },
+        { members: { $pull: { userId: userId } } },
+      );
+      return { message: 'You leave ' };
     }
-
-    await this.boardModel.updateOne(
-      { _id: id },
-      { members: { $pull: { userId: userId } } },
-    );
-
-    return { message: 'Board leave' };
   }
 }

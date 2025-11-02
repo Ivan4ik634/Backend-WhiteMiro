@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, UseGuards } from '@nestjs/common';
 import { CurrectUser } from 'src/common/decorators/userCurrect.decorator';
 import { AuthGuard } from 'src/common/guards/auth.guard';
 import { TaskService } from './task.service';
@@ -11,5 +11,10 @@ export class TaskController {
   @UseGuards(AuthGuard)
   async findTasks(@CurrectUser() userId: string) {
     return this.taskService.findAllTasks(userId);
+  }
+   @Get(':id')
+  @UseGuards(AuthGuard)
+  async findTask(@Param('id') id:string, @CurrectUser() userId: string) {
+    return this.taskService.findOne(id,userId);
   }
 }

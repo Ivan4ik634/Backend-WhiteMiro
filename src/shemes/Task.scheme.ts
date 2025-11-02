@@ -5,6 +5,9 @@ export type TaskDocument = HydratedDocument<Task>;
 @Schema()
 export class Task {
   @Prop({ required: true })
+  title: string;
+
+  @Prop({ default: '' })
   text: string;
 
   @Prop({ type: Types.ObjectId, ref: 'Board', required: true })
@@ -16,8 +19,12 @@ export class Task {
   @Prop({ default: false })
   isDone: boolean;
 
-  @Prop({ default: [] })
-  edges: { from: string; to: string }[];
+  @Prop({
+    type: [{ from: Types.ObjectId, to: Types.ObjectId }],
+    ref: 'Task',
+    default: [],
+  })
+  edges: { from: Types.ObjectId; to: Types.ObjectId }[];
 
   @Prop({ type: Number, required: true })
   x: number;
