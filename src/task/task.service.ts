@@ -17,11 +17,11 @@ export class TaskService {
   async findOne(id: string, userId: string) {
     const task = await this.task
       .findOne({ _id: id })
-      .populate('boardId')
+      .populate<{members:string[]}>('boardId')
       .populate('userId')
       .populate('edges.from')
       .populate('edges.to');
-    if (String(task?.userId) !== userId)
+    if (String(task?.members.some) !== userId)
       return new ForbiddenException('Access denied');
     return task;
   }

@@ -178,7 +178,9 @@ export class BoardService {
   }
 
   async toggleLike(id: string, userId: string) {
-    const board = await this.boardModel.findOne({ _id: id });
+    const board = await this.boardModel
+      .findOne({ _id: id })
+      .populate<{ members: { _id: string }[] }>('members');
     if (!board) return { message: 'Board not found' };
 
     if (
@@ -202,7 +204,9 @@ export class BoardService {
   }
 
   async remove(id: string, userId: string) {
-    const board = await this.boardModel.findOne({ _id: id });
+    const board = await this.boardModel
+      .findOne({ _id: id })
+      .populate<{ members: { _id: string }[] }>('members');
     if (!board) return { message: 'Board not found' };
     if (
       board.userId !== userId &&
