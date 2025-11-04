@@ -21,6 +21,7 @@ export class TaskService {
       .populate('userId')
       .populate('edges.from')
       .populate('edges.to');
+    if(!task) return {message:'Task not found'}
     if (String(task?.members.some) !== userId)
       return new ForbiddenException('Access denied');
     return task;
