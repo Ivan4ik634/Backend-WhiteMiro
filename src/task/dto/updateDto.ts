@@ -1,6 +1,5 @@
 export class UpdateTaskDto {
   _id: string;
-  userId: string;
   roomId: string;
   text: string;
   title: string;
@@ -11,7 +10,6 @@ export class UpdateTaskDto {
 }
 export class UpdateTaskIsDoneDto {
   _id: string;
-  userId: string;
   roomId: string;
   isDone: boolean;
 }

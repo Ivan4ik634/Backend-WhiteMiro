@@ -4,6 +4,7 @@ import {
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
+import jwt from 'jsonwebtoken';
 import { Model } from 'mongoose';
 import { Server, Socket } from 'socket.io';
 import { NotificationService } from 'src/notification/notification.service';
@@ -16,7 +17,7 @@ import { CreateTaskDto } from './dto/createDto';
 import { UpdateTaskDto, UpdateTaskIsDoneDto } from './dto/updateDto';
 
 @WebSocketGateway({
-  origin: '*',
+  cors: { origin: '*' },
 })
 export class TaskGateway {
   @WebSocketServer() server: Server;
@@ -30,58 +31,69 @@ export class TaskGateway {
     private readonly notification: NotificationService,
   ) {}
 
+  // ✅ АВТО-АВТОРИЗАЦИЯ ПО JWT
   async handleConnection(client: Socket) {
-    const userId = client.handshake.auth.userId;
-    if (typeof userId === 'string') client.join(userId!);
+    const token = client.handshake.auth?.token;
+    if (!token) {
+      client.disconnect(true);
+      return;
+    }
 
-    console.log(`Client connected: ${client.id}`);
+    try {
+      const payload = jwt.verify(token, 'secret') as any;
+      const userId = payload._id;
+
+      if (!userId) {
+        client.disconnect(true);
+        return;
+      }
+
+      client.data.userId = userId;
+      client.join(userId);
+      await this.user.updateOne({ _id: userId }, { online: true });
+
+      console.log(`✅ User ${userId} connected`);
+    } catch (err) {
+      console.error('❌ Invalid token:', err.message);
+      client.disconnect(true);
+    }
   }
 
   async handleDisconnect(client: Socket) {
-    const userId = client.handshake.auth.userId;
-    const user = await this.user.findOne({ _id: userId });
-    console.log(userId, user);
-    if (!user) return;
+    const userId = client.data.userId;
+    if (!userId) return;
 
-    if (typeof userId === 'string') {
-      await this.user.updateOne({ _id: user._id }, { online: false });
-
-      client.leave(userId!);
-    }
-
-    console.log(`Client disconnected: ${client.id}`);
+    await this.user.updateOne({ _id: userId }, { online: false });
+    client.leave(userId);
+    console.log(`❌ User ${userId} disconnected`);
   }
 
   @SubscribeMessage('joinRoom')
   async switchRoom(client: Socket, roomId: string) {
-    // Получаем все комнаты, кроме собственной (client.id) и комнаты userId
-    const userId = client.handshake.auth.userId;
+    const userId = client.data.userId;
+
     const rooms = Array.from(client.rooms).filter(
       (r) => r !== client.id && r !== userId,
     );
+    for (const room of rooms) client.leave(room);
 
-    // Ливаем только из чатов, но не из комнаты userId!
-    for (const room of rooms) {
-      client.leave(room);
-    }
-
-    // Присоединяемся к комнате чата
     client.join(roomId);
-
     console.log(`Client ${client.id} switched to room ${roomId}`);
   }
 
   @SubscribeMessage('task:create')
   async create(client: Socket, payload: CreateTaskDto) {
+    const userId = client.data.userId;
+
     const board = await this.boardModel
       .findOne({ _id: payload.boardId })
       .populate<{ playerIds: string[] }>('members');
     if (!board) return { message: 'Board not found' };
 
     const members = board.members.filter(
-      (member) => String(member._id) !== payload.userId,
+      (member) => String(member._id) !== userId,
     );
-    const avtorTask = await this.user.findOne({ _id: payload.userId });
+    const avtorTask = await this.user.findById(userId);
     if (!avtorTask) return { message: 'Avtor task not found' };
 
     await Promise.all(
@@ -89,15 +101,13 @@ export class TaskGateway {
         const settings = await this.settingsModel.findOne({ userId: obj._id });
         if (!settings) return;
         if (settings.notificationMessages) {
-          members.map((obj) => {
-            this.notification.sendPushNotification(
-              //@ts-ignore
-              obj.playerIds,
-              `A new task has been created!`,
-              `A new task has been created on the board ${board.title} by the user ${avtorTask!.username}.`,
-              `/board/${board._id}`,
-            );
-          });
+          this.notification.sendPushNotification(
+            //@ts-ignore
+            obj.playerIds,
+            `A new task has been created!`,
+            `A new task has been created on the board ${board.title} by the user ${avtorTask.username}.`,
+            `/board/${board._id}`,
+          );
         }
       }),
     );
@@ -105,32 +115,33 @@ export class TaskGateway {
     const newTask = await this.taskModel.create({
       ...payload,
       boardId: board._id,
+      userId,
     });
     await this.boardModel.updateOne({ _id: board._id }, { $inc: { tasks: 1 } });
 
     const task = await this.taskModel.findById(newTask._id);
-
     this.server.to(payload.roomId).emit('task:created', task);
   }
+
   @SubscribeMessage('task:update:isDone')
   async updateIsDone(client: Socket, payload: UpdateTaskIsDoneDto) {
-    const task = await this.taskModel.findOne({ _id: payload._id });
+    const userId = client.data.userId;
+
+    const task = await this.taskModel.findById(payload._id);
     if (!task) return { message: 'Task not found' };
 
-    const board = await this.boardModel.findOne({ _id: task.boardId });
+    const board = await this.boardModel.findById(task.boardId);
     if (!board) return { message: 'Board not found' };
 
     const hasAccess =
-      String(board.userId) === payload.userId ||
-      board.members.some((el) => String(el) === payload.userId);
-
+      String(board.userId) === userId ||
+      board.members.some((el) => String(el) === userId);
     if (!hasAccess) return { message: 'Access denied' };
 
-    const updateQuery: any = {
-      $set: { isDone: payload.isDone },
-    };
-
-    await this.taskModel.updateOne({ _id: payload._id }, updateQuery);
+    await this.taskModel.updateOne(
+      { _id: payload._id },
+      { $set: { isDone: payload.isDone } },
+    );
 
     const incValue = payload.isDone ? 1 : -1;
     await this.boardModel.updateOne(
@@ -138,51 +149,39 @@ export class TaskGateway {
       { $inc: { tasksDone: incValue } },
     );
 
-    // Получаем обновлённую задачу
     const taskUpdated = await this.taskModel.findById(payload._id);
-
-    // Отправляем событие всем участникам комнаты
     this.server.to(payload.roomId).emit('task:updated:isDone', {
-      userId: payload.userId,
+      userId,
       task: taskUpdated,
     });
-
-    return { success: true };
   }
 
   @SubscribeMessage('task:update')
   async update(client: Socket, payload: UpdateTaskDto) {
-    const task = await this.taskModel.findOne({ _id: payload._id });
+    const userId = client.data.userId;
+
+    const task = await this.taskModel.findById(payload._id);
     if (!task) return { message: 'Task not found' };
 
-    const board = await this.boardModel.findOne({ _id: task.boardId });
+    const board = await this.boardModel.findById(task.boardId);
     if (!board) return { message: 'Board not found' };
 
     const hasAccess =
-      String(board.userId) === payload.userId ||
-      board.members.some((el) => String(el) === payload.userId);
-
+      String(board.userId) === userId ||
+      board.members.some((el) => String(el) === userId);
     if (!hasAccess) return { message: 'Access denied' };
 
-    // Формируем апдейт корректно
-    const updateQuery: any = {
-      $set: { ...payload, boardId: board._id },
-    };
+    const updateQuery: any = { $set: { ...payload, boardId: board._id } };
 
-    // Если есть edges — пушим отдельно
     if (payload.edge) {
-      const taskFrom = await this.taskModel.findOne({ _id: payload.edge.from });
-      if (!taskFrom) return { message: 'Task not found' };
-
-      const taskTo = await this.taskModel.findOne({ _id: payload.edge.to });
-      if (!taskTo) return { message: 'Task not found' };
-      updateQuery.$push = { edges: { from: taskFrom._id, to: taskTo._id } };
+      const from = await this.taskModel.findById(payload.edge.from);
+      const to = await this.taskModel.findById(payload.edge.to);
+      if (from && to)
+        updateQuery.$push = { edges: { from: from._id, to: to._id } };
     }
 
-    // Обновляем задачу
     await this.taskModel.updateOne({ _id: payload._id }, updateQuery);
 
-    // Проверяем изменение статуса задачи
     if (payload.isDone !== task.isDone) {
       const incValue = payload.isDone ? 1 : -1;
       await this.boardModel.updateOne(
@@ -191,30 +190,25 @@ export class TaskGateway {
       );
     }
 
-    // Получаем обновлённую задачу
     const taskUpdated = await this.taskModel.findById(payload._id);
-
-    // Отправляем событие всем участникам комнаты
     this.server
       .to(payload.roomId)
-      .emit('task:updated', { userId: payload.userId, task: taskUpdated });
-
-    return { success: true };
+      .emit('task:updated', { userId, task: taskUpdated });
   }
 
   @SubscribeMessage('task:delete')
-  async delete(
-    client: Socket,
-    payload: { roomId: string; userId: string; _id: string },
-  ) {
-    const task = await this.taskModel.findOne({ _id: payload._id });
+  async delete(client: Socket, payload: { roomId: string; _id: string }) {
+    const userId = client.data.userId;
+
+    const task = await this.taskModel.findById(payload._id);
     if (!task) return { message: 'Task not found' };
-    const board = await this.boardModel.findOne({ _id: task.boardId });
+
+    const board = await this.boardModel.findById(task.boardId);
     if (!board) return { message: 'Board not found' };
 
     if (
-      board.userId !== payload.userId &&
-      !board.members.some((el) => String(el._id) === payload.userId)
+      String(board.userId) !== userId &&
+      !board.members.some((el) => String(el._id) === userId)
     )
       return { message: 'Access denied' };
 
@@ -243,67 +237,61 @@ export class TaskGateway {
   }
 
   @SubscribeMessage('userOnline')
-  async userOnline(client: Socket, payload: { userId: string }) {
-    const { userId } = payload;
+  async userOnline(client: Socket) {
+    const userId = client.data.userId;
 
     const user = await this.user.findById(userId);
-    if (!user) return null;
+    if (!user) return;
 
     await this.user.updateOne({ _id: userId }, { online: true });
 
     const onlineUsers = await this.user.find({ online: true });
-    if (!onlineUsers) return null;
-
     this.server.emit('onlineUsers', { users: onlineUsers });
   }
+
   @SubscribeMessage('moveUser')
   async moveUser(
     client: Socket,
-    payload: { roomId: string; x: number; y: number; userId: string },
+    payload: { roomId: string; x: number; y: number },
   ) {
-    const { roomId, x, y, userId } = payload;
-
+    const userId = client.data.userId;
     const user = await this.user.findById(userId);
-    if (!user) return null;
+    if (!user) return;
 
-    this.server.to(roomId).emit('userMoved', { x, y, user, roomId });
+    this.server.to(payload.roomId).emit('userMoved', { user, ...payload });
   }
+
   @SubscribeMessage('sendMessage')
   async handleSendMessage(
     client: Socket,
-    payload: {
-      roomId: string;
-      userId: string;
-      text: string;
-    },
+    payload: { roomId: string; text: string },
   ) {
-    const user = await this.user.findById(payload.userId);
+    const userId = client.data.userId;
+    const user = await this.user.findById(userId);
     if (!user) return;
 
     const newMessage = await this.message.create({
       roomId: payload.roomId,
       text: payload.text,
-      userId: user._id,
+      userId,
     });
 
-    const board = await this.boardModel.findOne({ _id: payload.roomId });
-    const avtorMessage = await this.user.findOne({ _id: user._id });
+    const board = await this.boardModel.findById(payload.roomId);
     if (!board) return;
 
     const members = board.members.filter(
-      (member) => String(member._id) !== payload.userId,
+      (member) => String(member._id) !== userId,
     );
 
     await Promise.all(
       members.map(async (obj) => {
         const settings = await this.settingsModel.findOne({ userId: obj._id });
-        if (!settings) return;
-        if (settings.notificationMessages) {
+        if (settings?.notificationMessages) {
           await this.notification.sendPushNotification(
             //@ts-ignore
             obj.playerIds,
             `A new message has been created!`,
-            `A new message has been created on the board ${board.title} by the user ${avtorMessage!.username}.`,
+            `A new message on board ${board.title} by ${user.username}.`,
             `/board/${board._id}`,
           );
         }
@@ -313,9 +301,6 @@ export class TaskGateway {
     const message = await this.message
       .findById(newMessage._id)
       .populate('userId');
-
-    this.server.to(payload.roomId).emit('receiveMessage', {
-      message,
-    });
+    this.server.to(payload.roomId).emit('receiveMessage', { message });
   }
 }
