@@ -17,12 +17,13 @@ export class TaskService {
   async findOne(id: string, userId: string) {
     const task = await this.task
       .findOne({ _id: id })
-      .populate<{members:string[]}>('boardId')
+      .populate<{ members: string[] }>('boardId')
       .populate('userId')
       .populate('edges.from')
       .populate('edges.to');
-    if(!task) return {message:'Task not found'}
-    if (String(task?.members.some) !== userId)
+    if (!task) return { message: 'Task not found' };
+    //@ts-ignore
+    if (!task?.boardId.members.some((obj) => String(obj) === userId))
       return new ForbiddenException('Access denied');
     return task;
   }
