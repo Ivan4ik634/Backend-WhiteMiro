@@ -123,6 +123,7 @@ export class TaskGateway {
 
     const task = await this.taskModel.findById(newTask._id);
     this.server.to(payload.roomId).emit('task:created', task);
+    return task
   }
 
   @SubscribeMessage('task:update:isDone')
@@ -196,6 +197,7 @@ export class TaskGateway {
     this.server
       .to(payload.roomId)
       .emit('task:updated', { userId, task: taskUpdated });
+    return taskUpdated
   }
 
   @SubscribeMessage('task:delete')
@@ -236,6 +238,7 @@ export class TaskGateway {
     );
 
     this.server.to(payload.roomId).emit('task:deleted', { _id: payload._id });
+    return {message:'Task deleted'}
   }
 
   @SubscribeMessage('userOnline')
