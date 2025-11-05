@@ -121,7 +121,7 @@ export class TaskGateway {
     });
     await this.boardModel.updateOne({ _id: board._id }, { $inc: { tasks: 1 } });
 
-    const task = await this.taskModel.findById(newTask._id);
+    const task = await this.taskModel.findById(newTask._id).populate('userId');;
     this.server.to(payload.roomId).emit('task:created', task);
     return task
   }
@@ -193,7 +193,7 @@ export class TaskGateway {
       );
     }
 
-    const taskUpdated = await this.taskModel.findById(payload._id);
+    const taskUpdated = await this.taskModel.findById(payload._id).populate('userId');;
     this.server
       .to(payload.roomId)
       .emit('task:updated', { userId, task: taskUpdated });
