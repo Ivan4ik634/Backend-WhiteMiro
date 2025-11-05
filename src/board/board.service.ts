@@ -113,7 +113,9 @@ export class BoardService {
     )
       return { message: 'Access denied' };
 
-    const tasks = await this.taskModel.find({ boardId: board._id });
+    const tasks = await this.taskModel
+      .find({ boardId: board._id })
+      .populate('userId');
     const messages = await this.messageModel
       .find({ roomId: id })
       .populate('userId');
