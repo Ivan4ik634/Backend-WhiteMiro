@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { NotificationModule } from 'src/notification/notification.module';
+import { ActivitySchema } from 'src/shemes/Activity.scheme';
 import { BoardSchema } from 'src/shemes/Board.scheme';
 import { MessageSchema } from 'src/shemes/Message';
 import { SettingsSchema } from 'src/shemes/Settings.scheme';
@@ -17,6 +18,8 @@ import { BoardService } from './board.service';
     MongooseModule.forFeature([{ name: 'Message', schema: MessageSchema }]),
     MongooseModule.forFeature([{ name: 'Settings', schema: SettingsSchema }]),
     MongooseModule.forFeature([{ name: 'User', schema: UserSchema }]),
+    MongooseModule.forFeature([{ name: 'Activity', schema: ActivitySchema }]),
+
     NotificationModule,
   ],
   controllers: [BoardController],

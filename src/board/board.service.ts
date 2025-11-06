@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { NotificationService } from 'src/notification/notification.service';
+import { Activity } from 'src/shemes/Activity.scheme';
 import { Board } from 'src/shemes/Board.scheme';
 import { Message } from 'src/shemes/Message';
 import { Settings } from 'src/shemes/Settings.scheme';
@@ -18,6 +19,8 @@ export class BoardService {
     @InjectModel('Message') private readonly messageModel: Model<Message>,
     @InjectModel('Settings') private readonly settingsModel: Model<Settings>,
     @InjectModel('User') private readonly user: Model<User>,
+    @InjectModel('Activity') private readonly activityModel: Model<Activity>,
+
     private readonly notification: NotificationService,
   ) {}
   async create(userId: string, createBoardDto: CreateBoardDto) {
@@ -26,9 +29,7 @@ export class BoardService {
       ...createBoardDto,
       members: [userId],
     });
-    const board = await this.boardModel
-      .findById(createBoard._id)
-      .populate<{ members: { _id: string }[] }>('members');
+    const board = await this.boardModel.findById(createBoard._id).populate<{ members: { _id: string }[] }>('members');
     return board;
   }
 
@@ -72,11 +73,7 @@ export class BoardService {
     const privateBoards = boards.filter((b) => b.access === 'locked');
     const doneBoards = boards.filter((b) => b.status === 'done');
 
-    const avgMembers =
-      boards.length > 0
-        ? boards.reduce((acc, cur) => acc + cur.members.length, 0) /
-          boards.length
-        : 0;
+    const avgMembers = boards.length > 0 ? boards.reduce((acc, cur) => acc + cur.members.length, 0) / boards.length : 0;
 
     const lastBoards = boards
       .slice()
@@ -101,24 +98,15 @@ export class BoardService {
   }
 
   async findOne(userId: string, id: string) {
-    const board = await this.boardModel
-      .findOne({ _id: id })
-      .populate<{ members: { _id: string }[] }>('members');
+    const board = await this.boardModel.findOne({ _id: id }).populate<{ members: { _id: string }[] }>('members');
 
     if (!board) return { message: 'Board not found' };
 
-    if (
-      board.userId !== userId &&
-      !board.members.some((el) => String(el._id) === userId)
-    )
+    if (board.userId !== userId && !board.members.some((el) => String(el._id) === userId))
       return { message: 'Access denied' };
 
-    const tasks = await this.taskModel
-      .find({ boardId: board._id })
-      .populate('userId');
-    const messages = await this.messageModel
-      .find({ roomId: id })
-      .populate('userId');
+    const tasks = await this.taskModel.find({ boardId: board._id }).populate('userId');
+    const messages = await this.messageModel.find({ roomId: id }).populate('userId');
     return { board, tasks, messages };
   }
 
@@ -129,9 +117,7 @@ export class BoardService {
 
     await this.boardModel.updateOne({ _id: id }, { ...updateBoardDto });
 
-    const boardUpdated = await this.boardModel
-      .findOne({ _id: id })
-      .populate<{ members: { _id: string }[] }>('members');
+    const boardUpdated = await this.boardModel.findOne({ _id: id }).populate<{ members: { _id: string }[] }>('members');
 
     return boardUpdated;
   }
@@ -145,19 +131,20 @@ export class BoardService {
     const settings = await this.settingsModel.findOne({ userId: board.userId });
     if (!avtor || !settings) return { message: 'Board not found' };
 
-    if (
-      board.userId === targetUserId ||
-      board.members.some((el) => String(el) === targetUserId)
-    )
+    if (board.userId === targetUserId || board.members.some((el) => String(el) === targetUserId))
       return { message: 'You already is joing  board' };
     if (board.access === 'locked') return { message: 'Board is locked' };
 
     const targetUser = await this.user.findById(targetUserId);
 
-    await this.boardModel.updateOne(
-      { _id: boardId },
-      { $push: { members: targetUserId } },
-    );
+    await this.boardModel.updateOne({ _id: boardId }, { $push: { members: targetUserId } });
+    await this.activityModel.create({
+      boardId: board._id,
+      members: board.members,
+      type: 'invite',
+      text: `A new user has joined the board ${board.title} with the name ${targetUser!.username}.`,
+      title: 'New user added to the board',
+    });
     if (settings.notificationEnteringBoard) {
       await this.notification.sendPushNotification(
         avtor.playerIds,
@@ -172,58 +159,38 @@ export class BoardService {
     const board = await this.boardModel.findOne({ _id: id });
     if (!board) return { message: 'Board not found' };
     if (board.userId !== userId) return { message: 'Access denied' };
-    await this.boardModel.updateOne(
-      { _id: id },
-      { $pull: { members: targetUserId } },
-    );
+    await this.boardModel.updateOne({ _id: id }, { $pull: { members: targetUserId } });
     return { message: 'User kicked' };
   }
 
   async toggleLike(id: string, userId: string) {
-    const board = await this.boardModel
-      .findOne({ _id: id })
-      .populate<{ members: { _id: string }[] }>('members');
+    const board = await this.boardModel.findOne({ _id: id }).populate<{ members: { _id: string }[] }>('members');
     if (!board) return { message: 'Board not found' };
 
-    if (
-      board.userId !== userId &&
-      !board.members.some((el) => String(el._id) === userId)
-    )
+    if (board.userId !== userId && !board.members.some((el) => String(el._id) === userId))
       return { message: 'Access denied' };
 
     const isLiked = board.liked.some((el) => String(el) === userId);
-    const updateBoardDto = isLiked
-      ? { $pull: { liked: userId } }
-      : { $push: { liked: userId } };
+    const updateBoardDto = isLiked ? { $pull: { liked: userId } } : { $push: { liked: userId } };
 
     await this.boardModel.updateOne({ _id: id }, updateBoardDto);
 
-    const boardUpdated = await this.boardModel
-      .findOne({ _id: id })
-      .populate<{ members: { _id: string }[] }>('members');
+    const boardUpdated = await this.boardModel.findOne({ _id: id }).populate<{ members: { _id: string }[] }>('members');
 
     return boardUpdated;
   }
 
   async remove(id: string, userId: string) {
-    const board = await this.boardModel
-      .findOne({ _id: id })
-      .populate<{ members: { _id: string }[] }>('members');
+    const board = await this.boardModel.findOne({ _id: id }).populate<{ members: { _id: string }[] }>('members');
     if (!board) return { message: 'Board not found' };
-    if (
-      board.userId !== userId &&
-      !board.members.some((el) => String(el._id) === userId)
-    )
+    if (board.userId !== userId && !board.members.some((el) => String(el._id) === userId))
       return { message: 'Access denied' };
 
     if (board.userId === userId) {
       await this.boardModel.deleteOne({ _id: id });
       return { message: 'Board deleted' };
     } else {
-      await this.boardModel.updateOne(
-        { _id: id },
-        { members: { $pull: { userId: userId } } },
-      );
+      await this.boardModel.updateOne({ _id: id }, { members: { $pull: { userId: userId } } });
       return { message: 'You leave ' };
     }
   }
