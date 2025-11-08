@@ -170,7 +170,7 @@ export class TaskGateway {
       if (from && to) updateQuery.$push = { edges: { from: from._id, to: to._id } };
     }
     await this.taskModel.updateOne({ _id: payload._id }, updateQuery);
-    if (task.x === payload.x && task.y === payload.y) {
+    if (Number(task.x) === Number(payload.x) && Number(task.y) === Number(payload.y)) {
       await this.activityModel.create({
         boardId: board._id,
         members: board.members,
