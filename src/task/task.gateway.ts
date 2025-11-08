@@ -114,7 +114,7 @@ export class TaskGateway {
     await this.boardModel.updateOne({ _id: board._id }, { $inc: { tasks: 1 } });
     await this.activityModel.create({
       boardId: board._id,
-      members: board.members,
+      members: board.members.map((obj) => String(obj._id)),
       type: 'create',
       text: `A new task has been created on the board ${board.title} by the user ${avtorTask.username}.`,
       title: 'Task created',
