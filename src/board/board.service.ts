@@ -187,6 +187,7 @@ export class BoardService {
       return { message: 'Access denied' };
 
     if (board.userId === userId) {
+      await this.taskModel.deleteMany({ boardId: board._id });
       await this.boardModel.deleteOne({ _id: id });
       return { message: 'Board deleted' };
     } else {

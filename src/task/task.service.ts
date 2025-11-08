@@ -24,7 +24,7 @@ export class TaskService {
     if (!task) return { message: 'Task not found' };
     //@ts-ignore
     if (!task?.boardId.members.some((obj) => String(obj) === userId))
-      return new ForbiddenException('Access denied');
+      return { message: 'Access defined' };
     return task;
   }
 }

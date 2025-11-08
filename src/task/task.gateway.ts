@@ -139,9 +139,6 @@ export class TaskGateway {
 
     await this.taskModel.updateOne({ _id: payload._id }, { $set: { isDone: payload.isDone } });
 
-    const incValue = payload.isDone ? 1 : -1;
-    await this.boardModel.updateOne({ _id: board._id }, { $inc: { tasksDone: incValue } });
-
     const taskUpdated = await this.taskModel.findById(payload._id);
     this.server.to(payload.roomId).emit('task:updated:isDone', {
       userId,
@@ -172,15 +169,17 @@ export class TaskGateway {
       const to = await this.taskModel.findById(payload.edge.to);
       if (from && to) updateQuery.$push = { edges: { from: from._id, to: to._id } };
     }
-
     await this.taskModel.updateOne({ _id: payload._id }, updateQuery);
-    await this.activityModel.create({
-      boardId: board._id,
-      members: board.members,
-      type: 'edit',
-      text: `The task was edited on board ${board.title} by user ${user.username}.`,
-      title: 'Task updated',
-    });
+    if (task.x === payload.x && task.y === payload.y) {
+      await this.activityModel.create({
+        boardId: board._id,
+        members: board.members,
+        type: 'edit',
+        text: `The task was edited on board ${board.title} by user ${user.username}.`,
+        title: 'Task updated',
+      });
+    }
+
     const taskUpdated = await this.taskModel.findById(payload._id).populate('userId');
     this.server.to(payload.roomId).emit('task:updated', { userId, task: taskUpdated });
     return taskUpdated;
