@@ -9,7 +9,7 @@ export class ActivityController {
 
   @Get()
   @UseGuards(AuthGuard)
-  findAll(@CurrectUser() userId: string, @Query('page') page: string) {
-    return this.activityService.findAll(userId, Number(page));
+  findAll(@CurrectUser() userId: string, @Query('cursor') cursor: string) {
+    return this.activityService.findAll(userId, cursor);
   }
 }

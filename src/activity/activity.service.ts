@@ -11,15 +11,29 @@ export class ActivityService {
     @InjectModel('User') private readonly user: Model<User>,
   ) {}
 
-  async findAll(userId: string, page: number) {
+  async findAll(userId: string, cursor?: string) {
     const limit = 10;
-    const user = await this.user.findById(userId);
-    if (!user) return 'User not found';
-    const activities = await this.activity
-      .find({ members: { $in: [userId] } })
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .sort({ createdAt: -1 });
-    return activities;
+
+    const filter: any = { members: { $in: [userId] } };
+
+    // если курсор передан — берем элементы "до" него
+    if (cursor) {
+      filter._id = { $lt: cursor };
+    }
+
+    const results = await this.activity
+      .find(filter)
+      .sort({ _id: -1 })
+      .limit(limit + 1); // берем на 1 больше, чтобы понять, есть ли продолжение
+
+    const hasMore = results.length > limit;
+    const items = hasMore ? results.slice(0, -1) : results;
+
+    const nextCursor = hasMore ? items[items.length - 1]._id : null;
+
+    return {
+      items,
+      nextCursor,
+    };
   }
 }
