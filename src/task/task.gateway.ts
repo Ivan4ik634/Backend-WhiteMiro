@@ -184,7 +184,7 @@ export class TaskGateway {
     }
     console.log('update query', updateQuery);
     await this.taskModel.updateOne({ _id: payload._id }, updateQuery);
-    if (Number(task.x) === Number(payload.x) && Number(task.y) === Number(payload.y)) {
+    if ((!payload.x) && (!payload.y)) {
       await this.activityModel.create({
         boardId: board._id,
         members: board.members,
