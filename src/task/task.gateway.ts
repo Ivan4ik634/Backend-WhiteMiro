@@ -148,19 +148,32 @@ export class TaskGateway {
 
   @SubscribeMessage('task:update')
   async update(client: Socket, payload: UpdateTaskDto) {
+    console.log('update task payload', payload);
     const userId = client.data.userId;
 
     const user = await this.user.findById(userId);
-    if (!user) return { message: 'User not found' };
+    if (!user) {
+      console.log('user not found');
+      return { message: 'User not found' };
+    }
 
     const task = await this.taskModel.findById(payload._id);
-    if (!task) return { message: 'Task not found' };
+    if (!task) {
+      console.log('task not found');
+      return { message: 'Task not found' };
+    }
 
     const board = await this.boardModel.findById(task.boardId);
-    if (!board) return { message: 'Board not found' };
+    if (!board) {
+      console.log('board not found');
+      return { message: 'Board not found' };
+    }
 
     const hasAccess = String(board.userId) === userId || board.members.some((el) => String(el) === userId);
-    if (!hasAccess) return { message: 'Access denied' };
+    if (!hasAccess) {
+      console.log('access denied');
+      return { message: 'Access denied' };
+    }
 
     const updateQuery: any = { $set: { ...payload, boardId: board._id } };
 
@@ -169,6 +182,7 @@ export class TaskGateway {
       const to = await this.taskModel.findById(payload.edge.to);
       if (from && to) updateQuery.$push = { edges: { from: from._id, to: to._id } };
     }
+    console.log('update query', updateQuery);
     await this.taskModel.updateOne({ _id: payload._id }, updateQuery);
     if (Number(task.x) === Number(payload.x) && Number(task.y) === Number(payload.y)) {
       await this.activityModel.create({
@@ -181,6 +195,7 @@ export class TaskGateway {
     }
 
     const taskUpdated = await this.taskModel.findById(payload._id).populate('userId');
+    console.log('task updated', taskUpdated);
     this.server.to(payload.roomId).emit('task:updated', { userId, task: taskUpdated });
     return taskUpdated;
   }
