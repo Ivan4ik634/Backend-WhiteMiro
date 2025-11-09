@@ -191,7 +191,7 @@ export class BoardService {
       await this.boardModel.deleteOne({ _id: id });
       return { message: 'Board deleted' };
     } else {
-      await this.boardModel.updateOne({ _id: id }, { members: { $pull: { userId: userId } } });
+      await this.boardModel.updateOne({ _id: id }, { $pull: { members: userId } });
       return { message: 'You leave ' };
     }
   }
