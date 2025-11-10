@@ -17,6 +17,12 @@ export class User {
   password: string;
 
   @Prop({ default: false })
+  isPremium: boolean;
+
+  @Prop({ type: Date || null, default: null })
+  premiumDate: Date | null;
+
+  @Prop({ default: false })
   online: boolean;
 
   @Prop({ required: true })
