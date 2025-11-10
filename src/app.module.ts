@@ -1,19 +1,20 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { ScheduleModule } from '@nestjs/schedule';
+import { ActivityModule } from './activity/activity.module';
 import { BoardModule } from './board/board.module';
+import { CommentModule } from './comment/comment.module';
+import { NotificationModule } from './notification/notification.module';
+import { SchedulesModule } from './schedule/schedule.module';
+import { SettingsModule } from './settings/settings.module';
 import { TaskModule } from './task/task.module';
 import { UploadModule } from './upload/upload.module';
 import { UserModule } from './user/user.module';
-import { NotificationModule } from './notification/notification.module';
-import { SettingsModule } from './settings/settings.module';
-import { CommentModule } from './comment/comment.module';
-import { ActivityModule } from './activity/activity.module';
 
 @Module({
   imports: [
-    MongooseModule.forRoot(
-      'mongodb+srv://admin:wwwwww@db.kyyjtdj.mongodb.net/?retryWrites=true&w=majority&appName=DB',
-    ),
+    MongooseModule.forRoot('mongodb+srv://admin:wwwwww@db.kyyjtdj.mongodb.net/?retryWrites=true&w=majority&appName=DB'),
+    ScheduleModule.forRoot(),
     UserModule,
     UploadModule,
     TaskModule,
@@ -22,6 +23,7 @@ import { ActivityModule } from './activity/activity.module';
     SettingsModule,
     CommentModule,
     ActivityModule,
+    SchedulesModule,
   ],
 })
 export class AppModule {}

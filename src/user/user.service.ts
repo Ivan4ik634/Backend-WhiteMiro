@@ -1,8 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
+import dayjs from 'dayjs';
 import { Model } from 'mongoose';
 import { Board } from 'src/shemes/Board.scheme';
+import { ScheduleTask } from 'src/shemes/ScheduleTask.scheme';
 import { Settings } from 'src/shemes/Settings.scheme';
 import { User } from 'src/shemes/User.scheme';
 import { editProfileDto, LoginDto, RegisterDto } from './dto/user';
@@ -12,6 +14,7 @@ export class UserService {
     @InjectModel(User.name) private readonly user: Model<User>,
     @InjectModel(Board.name) private readonly board: Model<Board>,
     @InjectModel('Settings') private readonly settings: Model<Settings>,
+    @InjectModel(ScheduleTask.name) private readonly scheduleTask: Model<ScheduleTask>,
 
     private readonly jwt: JwtService,
   ) {}
@@ -28,12 +31,11 @@ export class UserService {
       };
 
     const newUser = await this.user.create({ ...dto });
+    const today = dayjs().format('YYYY-MM-DD');
     await this.settings.create({ userId: newUser._id });
+    await this.scheduleTask.create({ userId: newUser._id, createdAt: today });
 
-    const token = await this.jwt.signAsync(
-      { _id: newUser._id },
-      { secret: 'secret', expiresIn: '30d' },
-    );
+    const token = await this.jwt.signAsync({ _id: newUser._id }, { secret: 'secret', expiresIn: '30d' });
 
     return { token, userId: newUser._id };
   }
@@ -41,15 +43,9 @@ export class UserService {
     const userUserName = await this.user.findOne({ username: dto.username });
     if (userUserName) {
       if (userUserName.password === dto.password) {
-        const token = await this.jwt.signAsync(
-          { _id: userUserName._id },
-          { secret: 'secret', expiresIn: '30d' },
-        );
+        const token = await this.jwt.signAsync({ _id: userUserName._id }, { secret: 'secret', expiresIn: '30d' });
 
-        await this.user.updateOne(
-          { _id: userUserName._id },
-          { $push: { playerIds: dto.playerId } },
-        );
+        await this.user.updateOne({ _id: userUserName._id }, { $push: { playerIds: dto.playerId } });
 
         return { token, userId: userUserName._id };
       }

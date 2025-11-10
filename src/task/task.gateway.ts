@@ -1,12 +1,14 @@
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { SubscribeMessage, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
+import dayjs from 'dayjs';
 import { Model } from 'mongoose';
 import { Server, Socket } from 'socket.io';
 import { NotificationService } from 'src/notification/notification.service';
 import { Activity } from 'src/shemes/Activity.scheme';
 import { Board } from 'src/shemes/Board.scheme';
 import { Message } from 'src/shemes/Message';
+import { ScheduleTask } from 'src/shemes/ScheduleTask.scheme';
 import { Settings } from 'src/shemes/Settings.scheme';
 import { Task } from 'src/shemes/Task.scheme';
 import { User } from 'src/shemes/User.scheme';
@@ -26,6 +28,8 @@ export class TaskGateway {
     @InjectModel('Activity') private readonly activityModel: Model<Activity>,
     @InjectModel('Board') private readonly boardModel: Model<Board>,
     @InjectModel('Settings') private readonly settingsModel: Model<Settings>,
+    @InjectModel(ScheduleTask.name) private readonly scheduleTask: Model<ScheduleTask>,
+
     private readonly notification: NotificationService,
     private readonly jwt: JwtService,
   ) {}
@@ -182,9 +186,16 @@ export class TaskGateway {
       const to = await this.taskModel.findById(payload.edge.to);
       if (from && to) updateQuery.$push = { edges: { from: from._id, to: to._id } };
     }
+    const today = dayjs().format('YYYY-MM-DD');
+    if (payload.isDone) {
+      await this.scheduleTask.updateOne({ userId: user._id, createdAt: today }, { $inc: { tasksDone: 1 } });
+    }
+    if (payload.isDone === false) {
+      await this.scheduleTask.updateOne({ userId: user._id, createdAt: today }, { $inc: { tasksDone: -1 } });
+    }
     console.log('update query', updateQuery);
     await this.taskModel.updateOne({ _id: payload._id }, updateQuery);
-    if ((!payload.x) && (!payload.y)) {
+    if (!payload.x && !payload.y) {
       await this.activityModel.create({
         boardId: board._id,
         members: board.members,
