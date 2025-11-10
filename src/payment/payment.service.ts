@@ -39,8 +39,8 @@ export class PaymentService {
       metadata: {
         userId,
       },
-      success_url: `https://white-miro.vercel.app/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `https://white-miro.vercel.app/payment/cancel?session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `https://white-miro.vercel.app/payment/success/{CHECKOUT_SESSION_ID}`,
+      cancel_url: `https://white-miro.vercel.app/payment/cancel/{CHECKOUT_SESSION_ID}`,
     });
 
     await this.payment.create({ paymentId: session.id, status: 'pending', amount, userId: user._id });
