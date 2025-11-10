@@ -24,6 +24,13 @@ export class BoardService {
     private readonly notification: NotificationService,
   ) {}
   async create(userId: string, createBoardDto: CreateBoardDto) {
+    const user = await this.user.findById(userId);
+    if (!user) return { message: 'User not found' };
+
+    const boards = await this.boardModel.find();
+    if (!user.isPremium && boards.length > 3)
+      return { message: 'You have 3 projects, if you want more projects, you need to purchase the premium version' };
+
     const createBoard = await this.boardModel.create({
       userId,
       ...createBoardDto,
@@ -133,7 +140,9 @@ export class BoardService {
 
     if (board.userId === targetUserId || board.members.some((el) => String(el) === targetUserId))
       return { message: 'You already is joing  board' };
+
     if (board.access === 'locked') return { message: 'Board is locked' };
+    if (!avtor.isPremium) return { message: 'The author does not have a premium version' };
 
     const targetUser = await this.user.findById(targetUserId);
 
