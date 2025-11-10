@@ -1,7 +1,7 @@
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { SubscribeMessage, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
-import dayjs from 'dayjs';
+import * as dayjs from 'dayjs';
 import { Model } from 'mongoose';
 import { Server, Socket } from 'socket.io';
 import { NotificationService } from 'src/notification/notification.service';

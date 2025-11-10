@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Cron } from '@nestjs/schedule';
-import dayjs from 'dayjs';
+import * as dayjs from 'dayjs';
 import { Model } from 'mongoose';
 import { ScheduleTask } from 'src/shemes/ScheduleTask.scheme';
 import { User } from 'src/shemes/User.scheme';

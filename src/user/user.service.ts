@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
-import dayjs from 'dayjs';
+import * as dayjs from 'dayjs';
 import { Model } from 'mongoose';
 import { Board } from 'src/shemes/Board.scheme';
 import { ScheduleTask } from 'src/shemes/ScheduleTask.scheme';
