@@ -12,7 +12,7 @@ export class ScheduleCron {
     @InjectModel(User.name) private readonly user: Model<User>,
     @InjectModel(ScheduleTask.name) private readonly scheduleTask: Model<ScheduleTask>,
   ) {}
-  @Cron('0 0 * * * *')
+  @Cron('0 0 0 * * *')
   async handleAddTaskScheduleEveryDay() {
     const today = dayjs().format('YYYY-MM-DD');
     const users = await this.user.find();
