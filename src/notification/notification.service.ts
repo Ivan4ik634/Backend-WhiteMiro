@@ -3,13 +3,7 @@ import axios from 'axios';
 
 @Injectable()
 export class NotificationService {
-  async sendPushNotification(
-    playerIds: string[],
-    title: string,
-    message: string,
-    url?: String,
-    image?: string,
-  ) {
+  async sendPushNotification(playerIds: string[], title: string, message: string, url?: String, image?: string) {
     try {
       const res = await axios.post(
         'https://api.onesignal.com/notifications?c=push',
@@ -18,10 +12,8 @@ export class NotificationService {
           include_player_ids: playerIds,
           headings: { en: title },
           contents: { en: message },
-          url: url
-            ? `https://white-youtube.vercel.app${url}`
-            : 'https://white-youtube.vercel.app',
-          chrome_web_icon: 'https://white-youtube.vercel.app/icons/icon.png',
+          url: url ? `https://white-miro.vercel.app${url}` : 'https://white-miro.vercel.app',
+          chrome_web_icon: 'https://white-miro.vercel.app/White-Miro.png',
           chrome_web_image: image ? image : '',
         },
         {

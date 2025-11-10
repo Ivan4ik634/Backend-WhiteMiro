@@ -140,6 +140,12 @@ export class TaskGateway {
 
     const hasAccess = String(board.userId) === userId || board.members.some((el) => String(el) === userId);
     if (!hasAccess) return { message: 'Access denied' };
+    const today = dayjs().format('YYYY-MM-DD');
+
+    await this.scheduleTask.updateOne(
+      { userId: userId, createdAt: today },
+      { $inc: { tasksDone: payload.isDone ? 1 : -1 } },
+    );
 
     await this.taskModel.updateOne({ _id: payload._id }, { $set: { isDone: payload.isDone } });
 
@@ -188,10 +194,10 @@ export class TaskGateway {
     }
     const today = dayjs().format('YYYY-MM-DD');
     if (payload.isDone) {
-      await this.scheduleTask.updateOne({ userId: user._id, createdAt: today }, { $inc: { tasksDone: 1 } });
+      await this.scheduleTask.updateOne({ userId: String(user._id), createdAt: today }, { $inc: { tasksDone: 1 } });
     }
     if (payload.isDone === false) {
-      await this.scheduleTask.updateOne({ userId: user._id, createdAt: today }, { $inc: { tasksDone: -1 } });
+      await this.scheduleTask.updateOne({ userId: String(user._id), createdAt: today }, { $inc: { tasksDone: -1 } });
     }
     console.log('update query', updateQuery);
     await this.taskModel.updateOne({ _id: payload._id }, updateQuery);

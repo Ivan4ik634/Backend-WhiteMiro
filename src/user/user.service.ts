@@ -33,7 +33,7 @@ export class UserService {
     const newUser = await this.user.create({ ...dto });
     const today = dayjs().format('YYYY-MM-DD');
     await this.settings.create({ userId: newUser._id });
-    await this.scheduleTask.create({ userId: newUser._id, createdAt: today });
+    await this.scheduleTask.create({ userId: String(newUser._id), createdAt: today });
 
     const token = await this.jwt.signAsync({ _id: newUser._id }, { secret: 'secret', expiresIn: '30d' });
 

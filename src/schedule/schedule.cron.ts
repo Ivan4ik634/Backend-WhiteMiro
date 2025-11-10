@@ -19,7 +19,7 @@ export class ScheduleCron {
     for (let i = 0; i < users.length; i++) {
       const user = users[i];
       await this.scheduleTask.create({
-        userId: user._id,
+        userId: String(user._id),
         createdAt: today,
       });
     }
