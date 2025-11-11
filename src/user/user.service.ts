@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
+import axios from 'axios';
 import * as dayjs from 'dayjs';
 import { Model } from 'mongoose';
 import { Board } from 'src/shemes/Board.scheme';
@@ -91,5 +92,48 @@ export class UserService {
     const boards = await this.board.find({ members: { $in: [userId, id] } });
 
     return { profile, boards };
+  }
+  async githubCallback(code: string, res) {
+    const tokenResponse = await axios.post(
+      `https://github.com/login/oauth/access_token`,
+      {
+        client_id: process.env.GITHUB_CLIENT_ID,
+        client_secret: process.env.GITHUB_CLIENT_SECRET,
+        code,
+      },
+      { headers: { Accept: 'application/json' } },
+    );
+
+    const accessToken = tokenResponse.data.access_token;
+
+    // 2. Получаем данные юзера
+    const userResponse = await axios.get(`https://api.github.com/user`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    const emailResponse = await axios.get(`https://api.github.com/user/emails`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    console.log(tokenResponse, accessToken, userResponse, emailResponse);
+    const githubUser = {
+      id: userResponse.data.id,
+      username: userResponse.data.login,
+      avatar: userResponse.data.avatar_url,
+      email: emailResponse.data.find((e) => e.primary)?.email ?? null,
+    };
+    console.log(githubUser);
+
+    const user = await this.user.findOne({ _id: githubUser.id });
+
+    if (user) {
+      const token = await this.jwt.signAsync({ _id: user._id }, { secret: 'secret', expiresIn: '30d' });
+      console.log('redirect white-miro ');
+      return res.redirect(`https://white-miro.vercel.app/user/?token=${token}&userId=${user._id}`);
+    } else {
+      const newUser = await this.user.create({ ...githubUser });
+      const token = await this.jwt.signAsync({ _id: newUser._id }, { secret: 'secret', expiresIn: '30d' });
+      console.log('redirect white-miro ');
+      return res.redirect(`https://white-miro.vercel.app/user/?token=${token}&userId=${newUser._id}`);
+    }
   }
 }

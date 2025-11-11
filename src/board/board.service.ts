@@ -132,17 +132,17 @@ export class BoardService {
   async invite(targetUserId: string, boardId: string) {
     const board = await this.boardModel.findOne({ _id: boardId });
 
-    if (!board) return { message: 'Board not found' };
+    if (!board) return { error: 'Board not found' };
 
     const avtor = await this.user.findById(board.userId);
     const settings = await this.settingsModel.findOne({ userId: board.userId });
-    if (!avtor || !settings) return { message: 'Board not found' };
+    if (!avtor || !settings) return { error: 'Avtor not found' };
 
     if (board.userId === targetUserId || board.members.some((el) => String(el) === targetUserId))
-      return { message: 'You already is joing  board' };
+      return { error: 'You already is joing  board' };
 
-    if (board.access === 'locked') return { message: 'Board is locked' };
-    if (!avtor.isPremium) return { message: 'The author does not have a premium version' };
+    if (board.access === 'locked') return { error: 'Board is locked' };
+    if (!avtor.isPremium) return { error: 'The author does not have a premium version' };
 
     const targetUser = await this.user.findById(targetUserId);
 
