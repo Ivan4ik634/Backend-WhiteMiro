@@ -32,6 +32,7 @@ export class PaymentService {
       payment_method_types: ['card'],
       mode: 'subscription',
       line_items: [{ price: 'price_1SSERIIC3cRUAUYki87nkI4i', quantity: 1 }],
+      customer: user.stripeCustomerId!,
       success_url: `https://white-miro.vercel.app/app/settings`,
       cancel_url: `https://white-miro.vercel.app/app/settings`,
     });
