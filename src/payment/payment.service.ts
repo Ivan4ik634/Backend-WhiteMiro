@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import * as dayjs from 'dayjs';
 import { Model } from 'mongoose';
 import { Payment } from 'src/shemes/Payment.schema';
 import { User } from 'src/shemes/User.scheme';
@@ -21,29 +20,22 @@ export class PaymentService {
   async createCheckoutSession(amount: number, userId: string) {
     const user = await this.user.findById(userId);
     if (!user) return;
+    if (!user.stripeCustomerId) {
+      const customer = await this.stripe.customers.create({
+        email: user.email,
+      });
+
+      await this.user.updateOne({ _id: user._id }, { stripeCustomerId: customer.id });
+    }
+
     const session = await this.stripe.checkout.sessions.create({
       payment_method_types: ['card'],
-      mode: 'payment',
-      line_items: [
-        {
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: 'Purchase the premium version',
-            },
-            unit_amount: amount * 100, // в центах
-          },
-          quantity: 1,
-        },
-      ],
-      metadata: {
-        userId,
-      },
-      success_url: `https://white-miro.vercel.app/payment/success/{CHECKOUT_SESSION_ID}`,
-      cancel_url: `https://white-miro.vercel.app/payment/cancel/{CHECKOUT_SESSION_ID}`,
+      mode: 'subscription',
+      line_items: [{ price: 'prod_TP2W71jfdN7wzM', quantity: 1 }],
+      success_url: `https://white-miro.vercel.app/app/settings`,
+      cancel_url: `https://white-miro.vercel.app/app/settings`,
     });
 
-    await this.payment.create({ paymentId: session.id, status: 'pending', amount, userId: user._id });
     return session; // редиректить сюда
   }
   async successPayment(body: { paymentId: string }, userId: string) {
@@ -57,9 +49,6 @@ export class PaymentService {
 
     const user = await this.user.findById(userId);
     if (!user) return 'User not found';
-
-    const premiumDate = dayjs().add(1, 'month').format('YYYY-MM-DD');
-    await this.user.findOneAndUpdate({ _id: user._id }, { isPremium: true, premiumDate });
 
     return { message: 'Payment processed successfully' };
   }
@@ -76,5 +65,50 @@ export class PaymentService {
       await payment.save();
       return 'Payment canceled!';
     }
+  }
+  async cancelPremium(userId: string) {
+    const user = await this.user.findById(userId);
+    if (!user || !user.stripeCustomerId) return 'User not found';
+    const subscription = await this.stripe.subscriptions.update(
+      user.stripeCustomerId,
+      { cancel_at_period_end: true }, // отмена в конце оплаченного периода
+    );
+
+    await this.user.updateOne({ _id: user._id }, { subscriptionCancelled: true });
+    return 'Cancel premium canceled!';
+  }
+  async webHook(req, signature: string) {
+    let event;
+
+    try {
+      event = this.stripe.webhooks.constructEvent(req.body, signature, process.env.STRIPE_WEBHOOK_SECRET!);
+    } catch (err) {
+      return new Response(`Webhook Error: ${err.message}`, { status: 400 });
+    }
+
+    if (event.type === 'customer.subscription.created' || event.type === 'customer.subscription.updated') {
+      const subscription = event.data.object;
+      const customerId = subscription.customer;
+      const status = subscription.status;
+
+      const user = await this.user.findOne({ stripeCustomerId: customerId });
+      if (!user) return;
+
+      if (status === 'active') {
+        await this.user.updateOne({ _id: user._id }, { isPremium: true, subscriptionCancelled: false });
+      } else {
+        await this.user.updateOne({ _id: user._id }, { isPremium: false, subscriptionCancelled: null });
+      }
+    }
+    if (event.type === 'customer.subscription.deleted') {
+      const subscription = event.data.object;
+      const customerId = subscription.customer;
+
+      const user = await this.user.findOne({ stripeCustomerId: customerId });
+      if (!user) return;
+      await this.user.updateOne({ _id: user._id }, { isPremium: false, subscriptionCancelled: null });
+    }
+
+    return new Response('OK', { status: 200 });
   }
 }

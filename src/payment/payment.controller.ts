@@ -1,4 +1,4 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Headers, Post, Req, UseGuards } from '@nestjs/common';
 import { CurrectUser } from 'src/common/decorators/userCurrect.decorator';
 import { AuthGuard } from 'src/common/guards/auth.guard';
 import { PaymentService } from './payment.service';
@@ -21,5 +21,14 @@ export class PaymentController {
   @UseGuards(AuthGuard)
   async cancelPayment(@CurrectUser() userId: string, @Body() body: { paymentId: string }) {
     return this.paymentService.cancelPayment(body.paymentId, userId);
+  }
+  @Post('cancel-premium')
+  @UseGuards(AuthGuard)
+  async cancelPremium(@CurrectUser() userId: string) {
+    return this.paymentService.cancelPremium(userId);
+  }
+  @Post('webhook')
+  async webhook(@Req() req, @Headers('stripe-signature') signature: string) {
+    return this.paymentService.webHook(req, signature);
   }
 }

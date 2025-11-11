@@ -19,8 +19,11 @@ export class User {
   @Prop({ default: false })
   isPremium: boolean;
 
-  @Prop({ type: Date || null, default: null })
-  premiumDate: Date | null;
+  @Prop({ type: String || null, default: null })
+  stripeCustomerId: string | null;
+
+  @Prop({ type: String || null, default: null })
+  subscriptionCancelled: boolean | null;
 
   @Prop({ default: false })
   online: boolean;
