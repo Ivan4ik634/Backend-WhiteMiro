@@ -17,7 +17,7 @@ export class UserController {
     return this.userService.login(dto);
   }
 
-  @Post('/github/callback')
+  @Get('/github/callback')
   async githubCallback(@Query('code') code: string, @Res() res) {
     return this.userService.githubCallback(code, res);
   }
