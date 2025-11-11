@@ -37,7 +37,7 @@ export class PaymentService {
       cancel_url: `https://white-miro.vercel.app/app/settings`,
     });
 
-    return session; // редиректить сюда
+    return session;
   }
   async successPayment(body: { paymentId: string }, userId: string) {
     const payment = await this.payment.findOneAndUpdate(
@@ -69,9 +69,9 @@ export class PaymentService {
   }
   async cancelPremium(userId: string) {
     const user = await this.user.findById(userId);
-    if (!user || !user.stripeCustomerId) return 'User not found';
+    if (!user || !user.subscriptionId) return 'User not found';
     const subscription = await this.stripe.subscriptions.update(
-      user.stripeCustomerId,
+      user.subscriptionId,
       { cancel_at_period_end: true }, // отмена в конце оплаченного периода
     );
 
@@ -96,6 +96,8 @@ export class PaymentService {
       const customerId = subscription.customer as string;
       const status = subscription.status;
 
+      const subscriptionId = subscription.subscription;
+
       console.log('Status', status);
       console.log('CustomerId', customerId);
       console.log('Subscription', subscription);
@@ -103,9 +105,15 @@ export class PaymentService {
       const user = await this.user.findOne({ stripeCustomerId: customerId });
       if (user) {
         if (status === 'complete') {
-          await this.user.updateOne({ _id: user._id }, { isPremium: true, subscriptionCancelled: false });
+          await this.user.updateOne(
+            { _id: user._id },
+            { isPremium: true, subscriptionId, subscriptionCancelled: false },
+          );
         } else {
-          await this.user.updateOne({ _id: user._id }, { isPremium: false, subscriptionCancelled: null });
+          await this.user.updateOne(
+            { _id: user._id },
+            { isPremium: false, subscriptionId: null, subscriptionCancelled: null },
+          );
         }
       }
     }
@@ -117,7 +125,10 @@ export class PaymentService {
       if (!user) return;
 
       if (subscription.cancel_at_period_end) {
-        await this.user.updateOne({ _id: user._id }, { isPremium: false });
+        await this.user.updateOne(
+          { _id: user._id },
+          { subscriptionId: null, subscriptionCancelled: null, isPremium: false },
+        );
       } else {
         await this.user.updateOne({ _id: user._id }, { isPremium: true });
       }

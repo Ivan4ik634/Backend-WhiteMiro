@@ -25,6 +25,9 @@ export class User {
   @Prop({ type: String || null, default: null })
   subscriptionCancelled: boolean | null;
 
+  @Prop({ type: String || null, default: null })
+  subscriptionId: string | null;
+
   @Prop({ default: false })
   online: boolean;
 
