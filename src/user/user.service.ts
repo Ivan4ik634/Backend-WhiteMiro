@@ -114,16 +114,14 @@ export class UserService {
     const emailResponse = await axios.get(`https://api.github.com/user/emails`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
-    console.log(tokenResponse, accessToken, userResponse, emailResponse);
     const githubUser = {
       id: userResponse.data.id,
       username: userResponse.data.login,
       avatar: userResponse.data.avatar_url,
       email: emailResponse.data.find((e) => e.primary)?.email ?? null,
     };
-    console.log(githubUser);
 
-    const user = await this.user.findOne({ _id: githubUser.id });
+    const user = await this.user.findOne({ username: githubUser.username, email: githubUser.email });
 
     if (user) {
       const token = await this.jwt.signAsync({ _id: user._id }, { secret: 'secret', expiresIn: '30d' });
