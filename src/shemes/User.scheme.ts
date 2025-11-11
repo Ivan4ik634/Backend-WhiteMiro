@@ -13,7 +13,7 @@ export class User {
   @Prop({ type: [String], required: true })
   playerIds: string[];
 
-  @Prop({ type: String || null, required: true })
+  @Prop({ type: String, default: null })
   password: string | null;
 
   @Prop({ default: false })
