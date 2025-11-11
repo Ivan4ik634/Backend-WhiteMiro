@@ -85,11 +85,17 @@ export class PaymentService {
     } catch (err) {
       return new Response(`Webhook Error: ${err.message}`, { status: 400 });
     }
+    console.log(`Event  ${event}`);
+    console.log(`Event type  ${event.type}`);
 
     if (event.type === 'customer.subscription.created' || event.type === 'customer.subscription.updated') {
       const subscription = event.data.object;
       const customerId = subscription.customer;
       const status = subscription.status;
+
+      console.log(`Status  ${status}`);
+      console.log(`CustomerId  ${customerId}`);
+      console.log(`Subscription  ${subscription}`);
 
       const user = await this.user.findOne({ stripeCustomerId: customerId });
       if (!user) return;
