@@ -5,7 +5,7 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  app.enableCors({origin:"*",credentials: true});
+  app.enableCors({origin: 'https://white-miro.vercel.app',credentials: true});
 
   app.use(
     '/payment/webhook',
