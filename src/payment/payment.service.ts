@@ -31,7 +31,7 @@ export class PaymentService {
     const session = await this.stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       mode: 'subscription',
-      line_items: [{ price: 'prod_TP2W71jfdN7wzM', quantity: 1 }],
+      line_items: [{ price: 'price_1SSERIIC3cRUAUYki87nkI4i', quantity: 1 }],
       success_url: `https://white-miro.vercel.app/app/settings`,
       cancel_url: `https://white-miro.vercel.app/app/settings`,
     });
