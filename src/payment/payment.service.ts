@@ -77,44 +77,51 @@ export class PaymentService {
     await this.user.updateOne({ _id: user._id }, { subscriptionCancelled: true });
     return 'Cancel premium canceled!';
   }
-  async webHook(req, signature: string) {
-    let event;
+  async webHook(req, res) {
+    const signature = req.headers['stripe-signature'] as string;
 
+    let event: Stripe.Event;
     try {
       event = this.stripe.webhooks.constructEvent(req.body, signature, process.env.STRIPE_WEBHOOK_SECRET!);
-    } catch (err) {
-      return new Response(`Webhook Error: ${err.message}`, { status: 400 });
+    } catch (err: any) {
+      return res.status(400).send(`Webhook Error: ${err.message}`);
     }
-    console.log(`Event  ${event}`);
-    console.log(`Event type  ${event.type}`);
 
-    if (event.type === 'customer.subscription.created' || event.type === 'customer.subscription.updated') {
-      const subscription = event.data.object;
-      const customerId = subscription.customer;
+    console.log('Event', event);
+    console.log('Event type', event.type);
+
+    if (event.type === 'checkout.session.completed') {
+      const subscription = event.data.object as Stripe.Checkout.Session;
+      const customerId = subscription.customer as string;
       const status = subscription.status;
 
-      console.log(`Status  ${status}`);
-      console.log(`CustomerId  ${customerId}`);
-      console.log(`Subscription  ${subscription}`);
+      console.log('Status', status);
+      console.log('CustomerId', customerId);
+      console.log('Subscription', subscription);
 
       const user = await this.user.findOne({ stripeCustomerId: customerId });
-      if (!user) return;
-
-      if (status === 'active') {
-        await this.user.updateOne({ _id: user._id }, { isPremium: true, subscriptionCancelled: false });
-      } else {
-        await this.user.updateOne({ _id: user._id }, { isPremium: false, subscriptionCancelled: null });
+      if (user) {
+        if (status === 'complete') {
+          await this.user.updateOne({ _id: user._id }, { isPremium: true, subscriptionCancelled: false });
+        } else {
+          await this.user.updateOne({ _id: user._id }, { isPremium: false, subscriptionCancelled: null });
+        }
       }
     }
-    if (event.type === 'customer.subscription.deleted') {
-      const subscription = event.data.object;
-      const customerId = subscription.customer;
 
+    if (event.type === 'customer.subscription.deleted' || event.type === 'customer.subscription.updated') {
+      const subscription = event.data.object as Stripe.Subscription;
+      const customerId = subscription.customer as string;
       const user = await this.user.findOne({ stripeCustomerId: customerId });
       if (!user) return;
-      await this.user.updateOne({ _id: user._id }, { isPremium: false, subscriptionCancelled: null });
+
+      if (subscription.cancel_at_period_end) {
+        await this.user.updateOne({ _id: user._id }, { isPremium: false });
+      } else {
+        await this.user.updateOne({ _id: user._id }, { isPremium: true });
+      }
     }
 
-    return new Response('OK', { status: 200 });
+    return res.status(200).send('OK');
   }
 }

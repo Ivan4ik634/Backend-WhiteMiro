@@ -1,4 +1,4 @@
-import { Body, Controller, Headers, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { CurrectUser } from 'src/common/decorators/userCurrect.decorator';
 import { AuthGuard } from 'src/common/guards/auth.guard';
 import { PaymentService } from './payment.service';
@@ -28,7 +28,7 @@ export class PaymentController {
     return this.paymentService.cancelPremium(userId);
   }
   @Post('webhook')
-  async webhook(@Req() req, @Headers('stripe-signature') signature: string) {
-    return this.paymentService.webHook(req, signature);
+  async webhook(@Req() req: Request, @Res() res: Response) {
+    return this.paymentService.webHook(req, res);
   }
 }
