@@ -145,7 +145,7 @@ export class UserService {
       console.log('redirect white-miro ');
       return res.redirect(`https://white-miro.vercel.app/`);
     } else {
-      const newUser = await this.user.create({ ...githubUser, password: null });
+      const newUser = await this.user.create({ ...githubUser, password: '' });
       const token = await this.jwt.signAsync({ _id: newUser._id }, { secret: 'secret', expiresIn: '30d' });
       res.cookie('token', token, {
         httpOnly: true,
