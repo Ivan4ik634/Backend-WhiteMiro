@@ -8,13 +8,13 @@ import { UserService } from './user.service';
 export class UserController {
   constructor(private readonly userService: UserService) {}
   @Post('/register')
-  async register(@Body() dto: RegisterDto) {
-    return this.userService.register(dto);
+  async register(@Res() res, @Body() dto: RegisterDto) {
+    return this.userService.register(dto, res);
   }
 
   @Post('/login')
-  async login(@Body() dto: LoginDto) {
-    return this.userService.login(dto);
+  async login(@Res() res, @Body() dto: LoginDto) {
+    return this.userService.login(dto, res);
   }
 
   @Get('/github/callback')
@@ -26,6 +26,11 @@ export class UserController {
   @UseGuards(AuthGuard)
   async profile(@CurrectUser() userId: string) {
     return this.userService.profile(userId);
+  }
+  @Get('/get-userId')
+  @UseGuards(AuthGuard)
+  async getUserId(@CurrectUser() userId: string) {
+    return { userId };
   }
 
   @Get('/members')
