@@ -7,7 +7,7 @@ export class User {
   @Prop({ default: '' })
   avatar: string;
 
-  @Prop({ required: true, unique: true })
+  @Prop({ required: true })
   username: string;
 
   @Prop({ type: [String], required: true })

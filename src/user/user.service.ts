@@ -20,13 +20,10 @@ export class UserService {
     private readonly jwt: JwtService,
   ) {}
   async register(dto: RegisterDto) {
-    const user = await this.user.findOne({
-      username: dto.username,
-    });
     const userEmail = await this.user.findOne({
       email: dto.email,
     });
-    if (user || userEmail)
+    if (userEmail)
       return {
         message: 'A user with this name or email already exists',
       };
@@ -42,12 +39,12 @@ export class UserService {
   }
 
   async login(dto: LoginDto) {
-    const userUserName = await this.user.findOne({ username: dto.username });
-    if (userUserName) {
-      if (userUserName.password === dto.password) {
-        const token = await this.jwt.signAsync({ _id: userUserName._id }, { secret: 'secret', expiresIn: '30d' });
+    const userEmail = await this.user.findOne({ email: dto.email });
+    if (userEmail) {
+      if (userEmail.password === dto.password) {
+        const token = await this.jwt.signAsync({ _id: userEmail._id }, { secret: 'secret', expiresIn: '30d' });
 
-        await this.user.updateOne({ _id: userUserName._id }, { $push: { playerIds: dto.playerId } });
+        await this.user.updateOne({ _id: userEmail._id }, { $push: { playerIds: dto.playerId } });
 
         return { token };
       }
@@ -57,15 +54,14 @@ export class UserService {
   }
 
   async editProfile(userId: string, dto: editProfileDto) {
-    const userUserName = await this.user.findOne({ username: dto.username });
     const userEmail = await this.user.findOne({ email: dto.email });
-    if (userUserName && userEmail) return { message: 'Login not found' };
+    if (userEmail) return { message: 'Login not found' };
     const user = await this.user.findById(userId);
     if (!user) return { message: 'User not found' };
     const data = {
       ...dto,
       email: dto.email === '' ? user.email : dto.email,
-      username: dto.username === '' ? user.username : dto.username,
+      username: dto.username,
     };
     const userUpdate = await this.user.findByIdAndUpdate(userId, {
       ...data,
@@ -122,7 +118,7 @@ export class UserService {
       email: emailResponse.data.find((e) => e.primary)?.email ?? null,
     };
 
-    const user = await this.user.findOne({ username: githubUser.username, email: githubUser.email });
+    const user = await this.user.findOne({ email: githubUser.email });
 
     if (user) {
       const token = await this.jwt.signAsync({ _id: user._id }, { secret: 'secret', expiresIn: '30d' });
@@ -137,7 +133,6 @@ export class UserService {
   }
   async googleAuthRedirect(googleUser: any) {
     const user = await this.user.findOne({
-      username: `${googleUser.firstName} ${googleUser.lastName}`,
       email: googleUser.email,
     });
 
@@ -148,7 +143,7 @@ export class UserService {
     } else {
       const newUser = await this.user.create({
         ...googleUser,
-        username: `${googleUser.firstName} ${googleUser.lastName}`,
+        username: `${googleUser.firstName ? googleUser.firstName : ''} ${googleUser.lastName ? googleUser.lastName : ''}`,
       });
       const token = await this.jwt.signAsync({ _id: newUser._id }, { secret: 'secret', expiresIn: '30d' });
 

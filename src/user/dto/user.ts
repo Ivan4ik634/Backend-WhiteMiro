@@ -6,7 +6,7 @@ export class RegisterDto {
 }
 
 export class LoginDto {
-  username: string;
+  email: string;
   playerId: string;
   password: string;
 }
