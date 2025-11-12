@@ -1,10 +1,10 @@
-import { Body, Controller, Get, Param, Post, Query, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
+import * as GoggleGuard from '@nestjs/passport';
 import { Response } from 'express';
 import { CurrectUser } from 'src/common/decorators/userCurrect.decorator';
 import { AuthGuard } from 'src/common/guards/auth.guard';
 import { editProfileDto, LoginDto, RegisterDto } from './dto/user';
 import { UserService } from './user.service';
-
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
@@ -54,7 +54,28 @@ export class UserController {
       maxAge: 30 * 24 * 60 * 60 * 1000,
       path: '/',
     });
-    return res.redirect(`https://white-miro.vercel.app/`);
+    return res.redirect(`https://white-miro.vercel.app/u?isAuth=true`);
+  }
+
+  @Get('/google')
+  @UseGuards(GoggleGuard.AuthGuard('google'))
+  async googleAuth() {}
+
+  @Get('/google/callback')
+  @UseGuards(GoggleGuard.AuthGuard('google'))
+  async googleAuthRedirect(@Req() req, @Res() res: Response) {
+    const user = req.user as any;
+
+    const { token } = await this.userService.googleAuthRedirect(user);
+
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+      path: '/',
+    });
+    res.redirect(`${process.env.FRONTEND_URL}/u?isAuth=true`);
   }
 
   @Get('/profile')

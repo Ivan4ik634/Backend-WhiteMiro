@@ -135,4 +135,24 @@ export class UserService {
       return { token };
     }
   }
+  async googleAuthRedirect(googleUser: any) {
+    const user = await this.user.findOne({
+      username: `${googleUser.firstName} ${googleUser.lastName}`,
+      email: googleUser.email,
+    });
+
+    if (user) {
+      const token = await this.jwt.signAsync({ _id: user._id }, { secret: 'secret', expiresIn: '30d' });
+
+      return { token };
+    } else {
+      const newUser = await this.user.create({
+        ...googleUser,
+        username: `${googleUser.firstName} ${googleUser.lastName}`,
+      });
+      const token = await this.jwt.signAsync({ _id: newUser._id }, { secret: 'secret', expiresIn: '30d' });
+
+      return { token };
+    }
+  }
 }
