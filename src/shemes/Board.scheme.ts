@@ -13,6 +13,9 @@ export class Board {
   @Prop({ required: true })
   text: string;
 
+  @Prop({ default: [] })
+  tags: string[];
+
   @Prop({ types: [Types.ObjectId], ref: 'User', default: [] })
   members: Types.ObjectId[];
 
