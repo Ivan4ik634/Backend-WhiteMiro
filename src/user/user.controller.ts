@@ -16,7 +16,7 @@ export class UserController {
       res.cookie('token', register.token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
+        sameSite: 'none',
         maxAge: 30 * 24 * 60 * 60 * 1000,
       });
       return { isAuth: true };
@@ -32,7 +32,7 @@ export class UserController {
       res.cookie('token', login.token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
+        sameSite: 'none',
         maxAge: 30 * 24 * 60 * 60 * 1000,
       });
       return { isAuth: true };
@@ -45,7 +45,7 @@ export class UserController {
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: 'none',
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
     return res.redirect(`https://white-miro.vercel.app/`);
