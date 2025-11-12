@@ -28,7 +28,7 @@ export class BoardService {
     if (!user) return { message: 'User not found' };
 
     const boards = await this.boardModel.find();
-    if (!user.isPremium && boards.length > 3)
+    if (!user.isPremium && boards.length >= 3)
       return { message: 'You have 3 projects, if you want more projects, you need to purchase the premium version' };
 
     const createBoard = await this.boardModel.create({
