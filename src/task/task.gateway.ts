@@ -1,6 +1,7 @@
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { SubscribeMessage, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
+import * as cookie from 'cookie';
 import * as dayjs from 'dayjs';
 import { Model } from 'mongoose';
 import { Server, Socket } from 'socket.io';
@@ -16,7 +17,7 @@ import { CreateTaskDto } from './dto/createDto';
 import { UpdateTaskDto, UpdateTaskIsDoneDto } from './dto/updateDto';
 
 @WebSocketGateway({
-  cors: { origin: '*' },
+  cors: { origin: `${process.env.FRONTEND_URL}`, credentials: true },
 })
 export class TaskGateway {
   @WebSocketServer() server: Server;
@@ -36,15 +37,19 @@ export class TaskGateway {
 
   // ✅ АВТО-АВТОРИЗАЦИЯ ПО JWT
   async handleConnection(client: Socket) {
-    const token = client.handshake.auth?.token;
-    if (!token) {
-      client.disconnect(true);
-      return;
-    }
-    console.log(token);
     try {
-      const payload = this.jwt.verify(token, { secret: 'secret' }) as any;
-      console.log(payload);
+      // 1. Достаём куки из заголовков
+      const cookies = cookie.parse(client.handshake.headers.cookie || '');
+      const token = cookies.token; // если твоя кука называется "token"
+
+      if (!token) {
+        console.log('❌ Нет токена в куках');
+        client.disconnect(true);
+        return;
+      }
+
+      // 2. Проверяем токен
+      const payload = this.jwt.verify(token, { secret: 'secret' });
       const userId = payload._id;
 
       if (!userId) {
@@ -52,13 +57,15 @@ export class TaskGateway {
         return;
       }
 
+      // 3. Сохраняем данные пользователя и отмечаем онлайн
       client.data.userId = userId;
       client.join(userId);
+
       await this.user.updateOne({ _id: userId }, { online: true });
 
-      console.log(`✅ User ${userId} connected`);
+      console.log(`✅ Пользователь ${userId} подключился`);
     } catch (err) {
-      console.error('❌ Invalid token:', err.message);
+      console.error('❌ Ошибка при подключении:', err.message);
       client.disconnect(true);
     }
   }
