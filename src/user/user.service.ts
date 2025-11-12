@@ -19,7 +19,7 @@ export class UserService {
 
     private readonly jwt: JwtService,
   ) {}
-  async register(dto: RegisterDto, res) {
+  async register(dto: RegisterDto) {
     const user = await this.user.findOne({
       username: dto.username,
     });
@@ -37,29 +37,19 @@ export class UserService {
     await this.scheduleTask.create({ userId: String(newUser._id), createdAt: today });
 
     const token = await this.jwt.signAsync({ _id: newUser._id }, { secret: 'secret', expiresIn: '30d' });
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 30 * 24 * 60 * 60 * 1000,
-    });
-    return { isAuth: true };
+
+    return { token };
   }
 
-  async login(dto: LoginDto, res) {
+  async login(dto: LoginDto) {
     const userUserName = await this.user.findOne({ username: dto.username });
     if (userUserName) {
       if (userUserName.password === dto.password) {
         const token = await this.jwt.signAsync({ _id: userUserName._id }, { secret: 'secret', expiresIn: '30d' });
 
         await this.user.updateOne({ _id: userUserName._id }, { $push: { playerIds: dto.playerId } });
-        res.cookie('token', token, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-          maxAge: 30 * 24 * 60 * 60 * 1000,
-        });
-        return { isAuth: true };
+
+        return { token };
       }
     }
 
@@ -104,7 +94,7 @@ export class UserService {
 
     return { profile, boards };
   }
-  async githubCallback(code: string, res) {
+  async githubCallback(code: string) {
     const tokenResponse = await axios.post(
       `https://github.com/login/oauth/access_token`,
       {
@@ -136,25 +126,13 @@ export class UserService {
 
     if (user) {
       const token = await this.jwt.signAsync({ _id: user._id }, { secret: 'secret', expiresIn: '30d' });
-      res.cookie('token', token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 30 * 24 * 60 * 60 * 1000,
-      });
-      console.log('redirect white-miro ');
-      return res.redirect(`https://white-miro.vercel.app/`);
+
+      return { token };
     } else {
       const newUser = await this.user.create({ ...githubUser });
       const token = await this.jwt.signAsync({ _id: newUser._id }, { secret: 'secret', expiresIn: '30d' });
-      res.cookie('token', token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 30 * 24 * 60 * 60 * 1000,
-      });
-      console.log('redirect white-miro ');
-      return res.redirect(`https://white-miro.vercel.app/`);
+
+      return { token };
     }
   }
 }

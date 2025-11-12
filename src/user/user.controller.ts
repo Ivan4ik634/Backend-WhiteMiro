@@ -9,17 +9,46 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
   @Post('/register')
   async register(@Res() res, @Body() dto: RegisterDto) {
-    return this.userService.register(dto, res);
+    const register = await this.userService.register(dto);
+    if (register.message === 'A user with this name or email already exists') {
+      return { message: register.message };
+    } else {
+      res.cookie('token', register.token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+      });
+      return { isAuth: true };
+    }
   }
 
   @Post('/login')
   async login(@Res() res, @Body() dto: LoginDto) {
-    return this.userService.login(dto, res);
+    const login = await this.userService.login(dto);
+    if (login.message === 'Incorrect login or password') {
+      return { message: login.message };
+    } else {
+      res.cookie('token', login.token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+      });
+      return { isAuth: true };
+    }
   }
 
   @Get('/github/callback')
   async githubCallback(@Query('code') code: string, @Res() res) {
-    return this.userService.githubCallback(code, res);
+    const { token } = await this.userService.githubCallback(code);
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+    });
+    return res.redirect(`https://white-miro.vercel.app/`);
   }
 
   @Get('/profile')
