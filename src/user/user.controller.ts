@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Param, Post, Query, Res, UseGuards } from '@nestjs/common';
+import { Response } from 'express';
 import { CurrectUser } from 'src/common/decorators/userCurrect.decorator';
 import { AuthGuard } from 'src/common/guards/auth.guard';
 import { editProfileDto, LoginDto, RegisterDto } from './dto/user';
@@ -8,8 +9,9 @@ import { UserService } from './user.service';
 export class UserController {
   constructor(private readonly userService: UserService) {}
   @Post('/register')
-  async register(@Res() res, @Body() dto: RegisterDto) {
+  async register(@Res({ passthrough: true }) res: Response, @Body() dto: RegisterDto) {
     const register = await this.userService.register(dto);
+    console.log(register);
     if (register.message === 'A user with this name or email already exists') {
       return { message: register.message };
     } else {
@@ -24,8 +26,9 @@ export class UserController {
   }
 
   @Post('/login')
-  async login(@Res() res, @Body() dto: LoginDto) {
+  async login(@Res({ passthrough: true }) res: Response, @Body() dto: LoginDto) {
     const login = await this.userService.login(dto);
+    console.log(login);
     if (login.message === 'Incorrect login or password') {
       return { message: login.message };
     } else {
@@ -40,7 +43,7 @@ export class UserController {
   }
 
   @Get('/github/callback')
-  async githubCallback(@Query('code') code: string, @Res() res) {
+  async githubCallback(@Query('code') code: string, @Res({ passthrough: true }) res: Response) {
     const { token } = await this.userService.githubCallback(code);
     res.cookie('token', token, {
       httpOnly: true,
