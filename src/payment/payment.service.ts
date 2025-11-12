@@ -27,12 +27,14 @@ export class PaymentService {
 
       await this.user.updateOne({ _id: user._id }, { stripeCustomerId: customer.id });
     }
+    const updatedUser = await this.user.findById(userId);
+    if (!updatedUser) return;
 
     const session = await this.stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       mode: 'subscription',
       line_items: [{ price: 'price_1SSERIIC3cRUAUYki87nkI4i', quantity: 1 }],
-      customer: user.stripeCustomerId!,
+      customer: updatedUser.stripeCustomerId!,
       success_url: `https://white-miro.vercel.app/app/settings`,
       cancel_url: `https://white-miro.vercel.app/app/settings`,
     });
@@ -76,7 +78,7 @@ export class PaymentService {
     );
 
     await this.user.updateOne({ _id: user._id }, { subscriptionCancelled: true });
-    return 'Cancel premium canceled!';
+    return 'Premium plan canceled! ';
   }
   async webHook(req, res) {
     const signature = req.headers['stripe-signature'] as string;
