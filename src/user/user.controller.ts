@@ -89,6 +89,13 @@ export class UserController {
     return { userId };
   }
 
+  @Get('/get-token')
+  @UseGuards(AuthGuard)
+  async getToken(@Req() req) {
+    const token = req.cookies['token'];
+    return { token };
+  }
+
   @Get('/members')
   @UseGuards(AuthGuard)
   async findMembers(@CurrectUser() userId: string) {
