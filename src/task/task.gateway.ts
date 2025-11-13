@@ -17,7 +17,7 @@ import { CreateTaskDto } from './dto/createDto';
 import { UpdateTaskDto, UpdateTaskIsDoneDto } from './dto/updateDto';
 
 @WebSocketGateway({
-  cors: { origin: `${process.env.FRONTEND_URL}`, credentials: true },
+  cors: { origin: `https://white-miro.vercel.app`, credentials: true },
 })
 export class TaskGateway {
   @WebSocketServer() server: Server;
