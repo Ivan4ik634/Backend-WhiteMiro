@@ -22,7 +22,7 @@ export class UserController {
         maxAge: 30 * 24 * 60 * 60 * 1000,
         path: '/',
       });
-      return res.redirect(`https://white-miro.vercel.app/u?isAuth=true`);
+      return { isAuth: true };
     }
   }
 
@@ -40,7 +40,7 @@ export class UserController {
         maxAge: 30 * 24 * 60 * 60 * 1000,
         path: '/',
       });
-      return res.redirect(`https://white-miro.vercel.app/u?isAuth=true`);
+      return { isAuth: true };
     }
   }
 
