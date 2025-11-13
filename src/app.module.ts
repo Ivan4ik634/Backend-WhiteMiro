@@ -11,6 +11,7 @@ import { SettingsModule } from './settings/settings.module';
 import { TaskModule } from './task/task.module';
 import { UploadModule } from './upload/upload.module';
 import { UserModule } from './user/user.module';
+import { TotpModule } from './totp/totp.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { UserModule } from './user/user.module';
     CommentModule,
     ActivityModule,
     SchedulesModule,
+    TotpModule,
   ],
 })
 export class AppModule {}

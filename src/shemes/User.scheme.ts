@@ -16,6 +16,12 @@ export class User {
   @Prop({ type: String, default: null })
   password: string | null;
 
+  @Prop({ type: String || null, default: null })
+  totpSecret: string | null;
+
+  @Prop({ default: false })
+  isTotpEnabled: boolean;
+
   @Prop({ default: false })
   isPremium: boolean;
 

@@ -8,6 +8,7 @@ import { Board } from 'src/shemes/Board.scheme';
 import { ScheduleTask } from 'src/shemes/ScheduleTask.scheme';
 import { Settings } from 'src/shemes/Settings.scheme';
 import { User } from 'src/shemes/User.scheme';
+import { TotpService } from 'src/totp/totp.service';
 import { editProfileDto, LoginDto, RegisterDto } from './dto/user';
 @Injectable()
 export class UserService {
@@ -18,6 +19,7 @@ export class UserService {
     @InjectModel(ScheduleTask.name) private readonly scheduleTask: Model<ScheduleTask>,
 
     private readonly jwt: JwtService,
+    private readonly totp: TotpService,
   ) {}
   async register(dto: RegisterDto) {
     const userEmail = await this.user.findOne({
@@ -40,8 +42,12 @@ export class UserService {
 
   async login(dto: LoginDto) {
     const userEmail = await this.user.findOne({ email: dto.email });
-    if (userEmail) {
-      if (userEmail.password === dto.password) {
+    if (!userEmail) return { message: 'Incorrect login or password' };
+    if (userEmail.isTotpEnabled) {
+      if (!dto.code) return { message: 'Go through Totp' };
+      const verify = await this.totp.verify(String(userEmail._id), dto.code);
+      console.log('totp' + verify + ' Token:' + dto.code);
+      if (userEmail.password === dto.password && verify) {
         const token = await this.jwt.signAsync({ _id: userEmail._id }, { secret: 'secret', expiresIn: '30d' });
 
         await this.user.updateOne({ _id: userEmail._id }, { $push: { playerIds: dto.playerId } });
@@ -49,8 +55,13 @@ export class UserService {
         return { token };
       }
     }
+    if (userEmail.password === dto.password) {
+      const token = await this.jwt.signAsync({ _id: userEmail._id }, { secret: 'secret', expiresIn: '30d' });
 
-    return { message: 'Incorrect login or password' };
+      await this.user.updateOne({ _id: userEmail._id }, { $push: { playerIds: dto.playerId } });
+
+      return { token };
+    }
   }
 
   async editProfile(userId: string, dto: editProfileDto) {

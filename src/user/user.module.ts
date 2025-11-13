@@ -5,6 +5,7 @@ import { Board, BoardSchema } from 'src/shemes/Board.scheme';
 import { ScheduleTask, ScheduleTaskSchema } from 'src/shemes/ScheduleTask.scheme';
 import { SettingsSchema } from 'src/shemes/Settings.scheme';
 import { User, UserSchema } from 'src/shemes/User.scheme';
+import { TotpModule } from 'src/totp/totp.module';
 import { GoogleStrategy } from './google.strategy';
 import { UserController } from './user.controller';
 import { UserService } from './user.service';
@@ -15,6 +16,7 @@ import { UserService } from './user.service';
     MongooseModule.forFeature([{ name: Board.name, schema: BoardSchema }]),
     MongooseModule.forFeature([{ name: 'Settings', schema: SettingsSchema }]),
     MongooseModule.forFeature([{ name: ScheduleTask.name, schema: ScheduleTaskSchema }]),
+    TotpModule,
   ],
   controllers: [UserController],
   providers: [UserService, GoogleStrategy, JwtService],

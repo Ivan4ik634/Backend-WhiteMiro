@@ -30,10 +30,10 @@ export class UserController {
   async login(@Res({ passthrough: true }) res: Response, @Body() dto: LoginDto) {
     const login = await this.userService.login(dto);
     console.log(login);
-    if (login.message === 'Incorrect login or password') {
+    if (login?.message) {
       return { message: login.message };
     } else {
-      res.cookie('token', login.token, {
+      res.cookie('token', login?.token, {
         httpOnly: true,
         secure: true,
         sameSite: 'none',
