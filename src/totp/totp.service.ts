@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import qrcode from 'qrcode';
+import * as qrcode from 'qrcode';
 import * as speakeasy from 'speakeasy';
 import { User } from 'src/shemes/User.scheme';
 
