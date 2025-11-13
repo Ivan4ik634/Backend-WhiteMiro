@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import qrcode from 'qrcode';
-import speakeasy from 'speakeasy';
+import * as speakeasy from 'speakeasy';
 import { User } from 'src/shemes/User.scheme';
 
 @Injectable()
@@ -15,7 +15,7 @@ export class TotpService {
       name: `White miro | ${user.username}`, // будет видно в приложении
       length: 20,
     });
-    console.log(secret)
+    console.log(secret);
     await this.user.updateOne({ _id: user._id }, { totpSecret: secret.base32 });
 
     const qr = await qrcode.toDataURL(secret.otpauth_url);
