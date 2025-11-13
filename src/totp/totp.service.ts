@@ -24,18 +24,18 @@ export class TotpService {
   }
   async verify(userId: string, token: string) {
     const user = await this.user.findById(userId);
-    if (!user) return false;
+    if (!user) return { message: 'User not found', ok: false };
     const secret = speakeasy.totp.verify({
       secret: user.totpSecret,
       encoding: 'base32',
       token,
     });
-    if (!secret) return false;
+    if (!secret) return { message: 'Secret not found', ok: false };
     if (!user.isTotpEnabled) {
       await this.user.updateOne({ _id: user._id }, { isTotpEnabled: true });
     }
 
-    return true;
+    return { message: 'Success', ok: false };
   }
   async cancel(userId: string) {
     const user = await this.user.findById(userId);

@@ -47,8 +47,7 @@ export class UserService {
       if (!dto.code) return { message: 'Go through Totp' };
       const verify = await this.totp.verify(String(userEmail._id), dto.code);
 
-      console.log('totp' + verify + ' Token:' + dto.code);
-      if (!verify) return { message: 'Incorrect totp code' };
+      if (!verify.ok) return { message: 'Incorrect totp code' };
 
       if (userEmail.password === dto.password) {
         const token = await this.jwt.signAsync({ _id: userEmail._id }, { secret: 'secret', expiresIn: '30d' });
