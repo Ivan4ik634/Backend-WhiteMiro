@@ -11,7 +11,7 @@ export class TotpService {
   async generate(userId: string) {
     const user = await this.user.findById(userId);
     if (!user) return { user: 'User not found' };
-    const secret = speakeasy.generateSecret({
+    const secret = await speakeasy.generateSecret({
       name: `White miro | ${user.username}`, // будет видно в приложении
       length: 20,
     });
