@@ -15,6 +15,7 @@ export class TotpService {
       name: `White miro | ${user.username}`, // будет видно в приложении
       length: 20,
     });
+    console.log(secret)
     await this.user.updateOne({ _id: user._id }, { totpSecret: secret.base32 });
 
     const qr = await qrcode.toDataURL(secret.otpauth_url);
