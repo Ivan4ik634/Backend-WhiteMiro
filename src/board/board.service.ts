@@ -156,7 +156,7 @@ export class BoardService {
     });
     if (settings.notificationEnteringBoard) {
       await this.notification.sendPushNotification(
-        avtor.playerIds,
+        String(avtor._id),
         `A participant has been added to you!`,
         `A member named ${targetUser!.username} was added to the board ${board.title}.`,
         `/board/${boardId}`,

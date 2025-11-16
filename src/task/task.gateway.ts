@@ -111,9 +111,9 @@ export class TaskGateway {
         console.log('settings', settings);
         if (!settings) return;
         if (settings.notificationMessages) {
-          this.notification.sendPushNotification(
+          await this.notification.sendPushNotification(
             //@ts-ignore
-            obj.playerIds,
+            obj._id,
             `A new task has been created!`,
             `A new task has been created on the board ${board.title} by the user ${avtorTask.username}.`,
             `/board/${board._id}`,
@@ -315,7 +315,7 @@ export class TaskGateway {
         if (settings?.notificationMessages) {
           await this.notification.sendPushNotification(
             //@ts-ignore
-            obj.playerIds,
+            obj._id,
             `A new message has been created!`,
             `A new message on board ${board.title} by ${user.username}.`,
             `/board/${board._id}`,

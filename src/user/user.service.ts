@@ -52,15 +52,11 @@ export class UserService {
       if (userEmail.password === dto.password) {
         const token = await this.jwt.signAsync({ _id: userEmail._id }, { secret: 'secret', expiresIn: '30d' });
 
-        await this.user.updateOne({ _id: userEmail._id }, { $push: { playerIds: dto.playerId } });
-
         return { token };
       }
     }
     if (userEmail.password === dto.password) {
       const token = await this.jwt.signAsync({ _id: userEmail._id }, { secret: 'secret', expiresIn: '30d' });
-
-      await this.user.updateOne({ _id: userEmail._id }, { $push: { playerIds: dto.playerId } });
 
       return { token };
     }
