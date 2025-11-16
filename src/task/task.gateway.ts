@@ -92,18 +92,23 @@ export class TaskGateway {
 
   @SubscribeMessage('task:create')
   async create(client: Socket, payload: CreateTaskDto) {
+    console.log('create task payload', payload);
     const userId = client.data.userId;
 
     const board = await this.boardModel.findOne({ _id: payload.boardId }).populate<{ playerIds: string[] }>('members');
+    console.log('board', board);
     if (!board) return { message: 'Board not found' };
 
     const members = board.members.filter((member) => String(member._id) !== userId);
+    console.log('members', members);
     const avtorTask = await this.user.findById(userId);
+    console.log('avtorTask', avtorTask);
     if (!avtorTask) return { message: 'Avtor task not found' };
 
     await Promise.all(
       members.map(async (obj) => {
         const settings = await this.settingsModel.findOne({ userId: obj._id });
+        console.log('settings', settings);
         if (!settings) return;
         if (settings.notificationMessages) {
           this.notification.sendPushNotification(
@@ -122,6 +127,7 @@ export class TaskGateway {
       boardId: board._id,
       userId,
     });
+    console.log('new task', newTask);
     await this.boardModel.updateOne({ _id: board._id }, { $inc: { tasks: 1 } });
     await this.activityModel.create({
       boardId: board._id,
@@ -131,10 +137,10 @@ export class TaskGateway {
       title: 'Task created',
     });
     const task = await this.taskModel.findById(newTask._id).populate('userId');
+    console.log('task', task);
     this.server.to(payload.roomId).emit('task:created', task);
     return task;
   }
-
   @SubscribeMessage('task:update:isDone')
   async updateIsDone(client: Socket, payload: UpdateTaskIsDoneDto) {
     const userId = client.data.userId;
