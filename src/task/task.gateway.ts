@@ -107,7 +107,7 @@ export class TaskGateway {
 
     await Promise.all(
       members.map(async (obj) => {
-        const settings = await this.settingsModel.findOne({ userId: obj._id });
+        const settings = await this.settingsModel.findOne({ userId: String(obj._id) });
         console.log('settings', settings);
         if (!settings) return;
         if (settings.notificationMessages) {
