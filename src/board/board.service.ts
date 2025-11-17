@@ -27,7 +27,7 @@ export class BoardService {
     const user = await this.user.findById(userId);
     if (!user) return { message: 'User not found' };
 
-    const boards = await this.boardModel.find();
+    const boards = await this.boardModel.find({ userId: userId });
     if (!user.isPremium && boards.length >= 3)
       return { message: 'You have 3 projects, if you want more projects, you need to purchase the premium version' };
 
@@ -134,13 +134,11 @@ export class BoardService {
 
     if (!board) return { error: 'Board not found' };
 
-    const avtor = await this.user.findById(board.userId);
-    const settings = await this.settingsModel.findOne({ userId: board.userId });
-    if (!avtor || !settings) return { error: 'Avtor not found' };
-
+    const avtor = await this.user.findOne({ _id: board.userId });
+    console.log(avtor);
+    if (!avtor) return { error: 'Avtor not found' };
     if (board.userId === targetUserId || board.members.some((el) => String(el) === targetUserId))
       return { error: 'You already is joing  board' };
-
     if (board.access === 'locked') return { error: 'Board is locked' };
     if (!avtor.isPremium) return { error: 'The author does not have a premium version' };
 
@@ -154,7 +152,8 @@ export class BoardService {
       text: `A new user has joined the board ${board.title} with the name ${targetUser!.username}.`,
       title: 'New user added to the board',
     });
-    if (settings.notificationEnteringBoard) {
+    const settings = await this.settingsModel.findOne({ userId: board.userId });
+    if (settings?.notificationEnteringBoard) {
       await this.notification.sendPushNotification(
         String(avtor._id),
         `A participant has been added to you!`,
