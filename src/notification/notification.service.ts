@@ -12,9 +12,10 @@ export class NotificationService {
     if (!user) return;
     try {
       const res = await axios.post(
-        'https://api.onesignal.com/notifications?c=push',
+        'https://api.onesignal.com/notifications',
         {
-          app_id: process.env.ONESIGNAL_API_ID!,
+          app_id: `${process.env.ONESIGNAL_API_ID!}`,
+          target_channel: 'push',
           include_subscription_ids: user?.playerIds,
           headings: { en: title },
           contents: { en: message },

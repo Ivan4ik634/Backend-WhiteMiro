@@ -116,7 +116,7 @@ export class TaskGateway {
             obj._id,
             `A new task has been created!`,
             `A new task has been created on the board ${board.title} by the user ${avtorTask.username}.`,
-            `/board/${board._id}`,
+            `/app/board/${board._id}`,
           );
         }
       }),
@@ -304,14 +304,14 @@ export class TaskGateway {
       userId,
     });
 
-    const board = await this.boardModel.findById(payload.roomId);
+    const board = await this.boardModel.findById(payload.roomId).populate('members');
     if (!board) return;
 
     const members = board.members.filter((member) => String(member._id) !== userId);
 
     await Promise.all(
       members.map(async (obj) => {
-        const settings = await this.settingsModel.findOne({ userId: obj._id });
+        const settings = await this.settingsModel.findOne({ userId: String(obj._id) });
         if (settings?.notificationMessages) {
           await this.notification.sendPushNotification(
             //@ts-ignore

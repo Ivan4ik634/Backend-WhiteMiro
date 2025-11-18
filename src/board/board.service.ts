@@ -152,13 +152,13 @@ export class BoardService {
       text: `A new user has joined the board ${board.title} with the name ${targetUser!.username}.`,
       title: 'New user added to the board',
     });
-    const settings = await this.settingsModel.findOne({ userId: board.userId });
+    const settings = await this.settingsModel.findOne({ userId: String(board.userId) });
     if (settings?.notificationEnteringBoard) {
       await this.notification.sendPushNotification(
         String(avtor._id),
         `A participant has been added to you!`,
         `A member named ${targetUser!.username} was added to the board ${board.title}.`,
-        `/board/${boardId}`,
+        `/app/board/${boardId}`,
       );
     }
     return { message: 'User invited' };
