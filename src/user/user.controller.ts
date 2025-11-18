@@ -45,8 +45,8 @@ export class UserController {
   }
 
   @Get('/github/callback')
-  async githubCallback(@Query('code') code: string, @Res({ passthrough: true }) res: Response) {
-    const { token } = await this.userService.githubCallback(code);
+  async githubCallback(@Query() query: { state: string; code: string }, @Res({ passthrough: true }) res: Response) {
+    const { token } = await this.userService.githubCallback(query);
     res.cookie('token', token, {
       httpOnly: true,
       secure: true,
@@ -59,14 +59,18 @@ export class UserController {
 
   @Get('/google')
   @UseGuards(GoggleGuard.AuthGuard('google'))
-  async googleAuth() {}
+  async googleAuth(@Query('playerId') playerId: string, @Req() req) {
+    const state = encodeURIComponent(playerId);
+    req.query = { ...req.query, state };
+  }
 
   @Get('/google/callback')
   @UseGuards(GoggleGuard.AuthGuard('google'))
   async googleAuthRedirect(@Req() req, @Res() res: Response) {
     const user = req.user as any;
+    const playerId = req.query.state as string;
 
-    const { token } = await this.userService.googleAuthRedirect(user);
+    const { token } = await this.userService.googleAuthRedirect(user, playerId);
 
     res.cookie('token', token, {
       httpOnly: true,

@@ -51,13 +51,13 @@ export class UserService {
 
       if (userEmail.password === dto.password) {
         const token = await this.jwt.signAsync({ _id: userEmail._id }, { secret: 'secret', expiresIn: '30d' });
-
+        await this.user.updateOne({ _id: userEmail._id }, { $push: { playerIds: dto.playerId } });
         return { token };
       }
     }
     if (userEmail.password === dto.password) {
       const token = await this.jwt.signAsync({ _id: userEmail._id }, { secret: 'secret', expiresIn: '30d' });
-
+      await this.user.updateOne({ _id: userEmail._id }, { $push: { playerIds: dto.playerId } });
       return { token };
     }
   }
@@ -99,13 +99,13 @@ export class UserService {
 
     return { profile, boards };
   }
-  async githubCallback(code: string) {
+  async githubCallback(query: { state: string; code: string }) {
     const tokenResponse = await axios.post(
       `https://github.com/login/oauth/access_token`,
       {
         client_id: process.env.GITHUB_CLIENT_ID,
         client_secret: process.env.GITHUB_CLIENT_SECRET,
-        code,
+        code: query.code,
       },
       { headers: { Accept: 'application/json' } },
     );
@@ -130,22 +130,25 @@ export class UserService {
     const user = await this.user.findOne({ email: githubUser.email });
 
     if (user) {
+      await this.user.updateOne({ _id: user._id }, { $push: { playerIds: query.state } });
+
       const token = await this.jwt.signAsync({ _id: user._id }, { secret: 'secret', expiresIn: '30d' });
 
       return { token };
     } else {
-      const newUser = await this.user.create({ ...githubUser });
+      const newUser = await this.user.create({ ...githubUser, playerIds: query.state });
       const token = await this.jwt.signAsync({ _id: newUser._id }, { secret: 'secret', expiresIn: '30d' });
 
       return { token };
     }
   }
-  async googleAuthRedirect(googleUser: any) {
+  async googleAuthRedirect(googleUser: any, playerId: string) {
     const user = await this.user.findOne({
       email: googleUser.email,
     });
 
     if (user) {
+      await this.user.updateOne({ _id: user._id }, { $push: { playerIds: playerId } });
       const token = await this.jwt.signAsync({ _id: user._id }, { secret: 'secret', expiresIn: '30d' });
 
       return { token };
@@ -153,6 +156,7 @@ export class UserService {
       const newUser = await this.user.create({
         ...googleUser,
         username: `${googleUser.firstName ? googleUser.firstName : ''} ${googleUser.lastName ? googleUser.lastName : ''}`,
+        playerIds: [playerId],
       });
       const token = await this.jwt.signAsync({ _id: newUser._id }, { secret: 'secret', expiresIn: '30d' });
 

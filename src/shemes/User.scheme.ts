@@ -10,6 +10,9 @@ export class User {
   @Prop({ required: true })
   username: string;
 
+  @Prop({ type:[String], required: true })
+  playerIds:string[]
+  
   @Prop({ type: String, default: null })
   password: string | null;
 
