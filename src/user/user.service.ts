@@ -30,7 +30,7 @@ export class UserService {
         message: 'A user with this name or email already exists',
       };
 
-    const newUser = await this.user.create({ ...dto });
+    const newUser = await this.user.create({ ...dto, playerIds: [dto.playerId] });
     const today = dayjs().format('YYYY-MM-DD');
     await this.settings.create({ userId: newUser._id });
     await this.scheduleTask.create({ userId: String(newUser._id), createdAt: today });
