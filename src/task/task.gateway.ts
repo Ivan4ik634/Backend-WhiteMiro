@@ -318,7 +318,7 @@ export class TaskGateway {
             obj._id,
             `A new message has been created!`,
             `A new message on board ${board.title} by ${user.username}.`,
-            `/board/${board._id}`,
+            `/app/board/${board._id}`,
           );
         }
       }),
