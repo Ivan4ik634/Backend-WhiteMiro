@@ -45,7 +45,10 @@ export class UserController {
   }
 
   @Get('/github/callback')
-  async githubCallback(@Query() query: { state: string; code: string }, @Res({ passthrough: true }) res: Response) {
+  async githubCallback(
+    @Query() query: { state: string; redirect_url: string; code: string },
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const { token } = await this.userService.githubCallback(query);
     res.cookie('token', token, {
       httpOnly: true,
@@ -54,14 +57,17 @@ export class UserController {
       maxAge: 30 * 24 * 60 * 60 * 1000,
       path: '/',
     });
-    return res.redirect(`https://white-miro.vercel.app/u?isAuth=true`);
+    return res.redirect(
+      `https://white-miro.vercel.app/u?isAuth=true${query.redirect_url ? `&redirect_url=${query.redirect_url}` : ''}`,
+    );
   }
 
   @Get('/google')
   @UseGuards(GoggleGuard.AuthGuard('google'))
-  async googleAuth(@Query('playerId') playerId: string, @Req() req) {
+  async googleAuth(@Query('playerId') playerId: string, @Query('redirect_url') redirect_url: string, @Req() req) {
     const state = encodeURIComponent(playerId);
-    req.query = { ...req.query, state };
+    const redirect = encodeURIComponent(redirect_url);
+    req.query = { ...req.query, state, redirect_url: redirect };
   }
 
   @Get('/google/callback')
@@ -69,6 +75,7 @@ export class UserController {
   async googleAuthRedirect(@Req() req, @Res() res: Response) {
     const user = req.user as any;
     const playerId = req.query.state as string;
+    const redirect_url = req.query.redirect_url as string;
 
     const { token } = await this.userService.googleAuthRedirect(user, playerId);
 
@@ -79,7 +86,7 @@ export class UserController {
       maxAge: 30 * 24 * 60 * 60 * 1000,
       path: '/',
     });
-    res.redirect(`https://white-miro.vercel.app/u?isAuth=true`);
+    res.redirect(`https://white-miro.vercel.app/u?isAuth=true${redirect_url ? `&redirect_url=${redirect_url}` : ''}`);
   }
 
   @Get('/profile')
