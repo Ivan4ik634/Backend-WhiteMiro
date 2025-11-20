@@ -162,7 +162,7 @@ export class TaskGateway {
 
     await this.taskModel.updateOne({ _id: payload._id }, { $set: { isDone: payload.isDone } });
 
-    const taskUpdated = await this.taskModel.findById(payload._id);
+    const taskUpdated = await this.taskModel.findById(payload._id).populate('userId');
     this.server.to(payload.roomId).emit('task:updated:isDone', {
       userId,
       task: taskUpdated,
