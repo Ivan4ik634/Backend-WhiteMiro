@@ -43,7 +43,6 @@ export class TaskGateway {
       const token = cookies.token; // если твоя кука называется "token"
 
       if (!token) {
-        console.log('❌ Нет токена в куках');
         client.disconnect(true);
         return;
       }
@@ -62,8 +61,6 @@ export class TaskGateway {
       client.join(userId);
 
       await this.user.updateOne({ _id: userId }, { online: true });
-
-      console.log(`✅ Пользователь ${userId} подключился`);
     } catch (err) {
       console.error('❌ Ошибка при подключении:', err.message);
       client.disconnect(true);
@@ -76,7 +73,6 @@ export class TaskGateway {
 
     await this.user.updateOne({ _id: userId }, { online: false });
     client.leave(userId);
-    console.log(`❌ User ${userId} disconnected`);
   }
 
   @SubscribeMessage('joinRoom')
@@ -87,28 +83,22 @@ export class TaskGateway {
     for (const room of rooms) client.leave(room);
 
     client.join(roomId);
-    console.log(`Client ${client.id} switched to room ${roomId}`);
   }
 
   @SubscribeMessage('task:create')
   async create(client: Socket, payload: CreateTaskDto) {
-    console.log('create task payload', payload);
     const userId = client.data.userId;
 
     const board = await this.boardModel.findOne({ _id: payload.boardId }).populate<{ playerIds: string[] }>('members');
-    console.log('board', board);
     if (!board) return { message: 'Board not found' };
 
     const members = board.members.filter((member) => String(member._id) !== userId);
-    console.log('members', members);
     const avtorTask = await this.user.findById(userId);
-    console.log('avtorTask', avtorTask);
     if (!avtorTask) return { message: 'Avtor task not found' };
 
     await Promise.all(
       members.map(async (obj) => {
         const settings = await this.settingsModel.findOne({ userId: String(obj._id) });
-        console.log('settings', settings);
         if (!settings) return;
         if (settings.notificationMessages) {
           await this.notification.sendPushNotification(
@@ -127,7 +117,6 @@ export class TaskGateway {
       boardId: board._id,
       userId,
     });
-    console.log('new task', newTask);
     await this.boardModel.updateOne({ _id: board._id }, { $inc: { tasks: 1 } });
     await this.activityModel.create({
       boardId: board._id,
@@ -137,7 +126,6 @@ export class TaskGateway {
       title: 'Task created',
     });
     const task = await this.taskModel.findById(newTask._id).populate('userId');
-    console.log('task', task);
     this.server.to(payload.roomId).emit('task:created', task);
     return task;
   }
@@ -171,30 +159,25 @@ export class TaskGateway {
 
   @SubscribeMessage('task:update')
   async update(client: Socket, payload: UpdateTaskDto) {
-    console.log('update task payload', payload);
     const userId = client.data.userId;
 
     const user = await this.user.findById(userId);
     if (!user) {
-      console.log('user not found');
       return { message: 'User not found' };
     }
 
     const task = await this.taskModel.findById(payload._id);
     if (!task) {
-      console.log('task not found');
       return { message: 'Task not found' };
     }
 
     const board = await this.boardModel.findById(task.boardId);
     if (!board) {
-      console.log('board not found');
       return { message: 'Board not found' };
     }
 
     const hasAccess = String(board.userId) === userId || board.members.some((el) => String(el) === userId);
     if (!hasAccess) {
-      console.log('access denied');
       return { message: 'Access denied' };
     }
 
@@ -212,7 +195,6 @@ export class TaskGateway {
     if (payload.isDone === false) {
       await this.scheduleTask.updateOne({ userId: String(user._id), createdAt: today }, { $inc: { tasksDone: -1 } });
     }
-    console.log('update query', updateQuery);
     await this.taskModel.updateOne({ _id: payload._id }, updateQuery);
     if (!payload.x && !payload.y) {
       await this.activityModel.create({
@@ -225,7 +207,6 @@ export class TaskGateway {
     }
 
     const taskUpdated = await this.taskModel.findById(payload._id).populate('userId');
-    console.log('task updated', taskUpdated);
     this.server.to(payload.roomId).emit('task:updated', { userId, task: taskUpdated });
     return taskUpdated;
   }

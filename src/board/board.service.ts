@@ -135,7 +135,6 @@ export class BoardService {
     if (!board) return { error: 'Board not found' };
 
     const avtor = await this.user.findOne({ _id: board.userId });
-    console.log(avtor);
     if (!avtor) return { error: 'Avtor not found' };
     if (board.userId === targetUserId || board.members.some((el) => String(el) === targetUserId))
       return { error: 'You already is joing  board' };

@@ -17,7 +17,6 @@ export class UploadService {
       .replace(/&/g, 'and')
       .replace(/\s+/g, '_');
 
-    console.log(cleanedOriginalName);
     return new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {

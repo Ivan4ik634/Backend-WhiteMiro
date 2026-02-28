@@ -11,7 +11,6 @@ export class UserController {
   @Post('/register')
   async register(@Res({ passthrough: true }) res: Response, @Body() dto: RegisterDto) {
     const register = await this.userService.register(dto);
-    console.log(register);
     if (register.message === 'A user with this name or email already exists') {
       return { message: register.message };
     } else {
@@ -29,7 +28,6 @@ export class UserController {
   @Post('/login')
   async login(@Res({ passthrough: true }) res: Response, @Body() dto: LoginDto) {
     const login = await this.userService.login(dto);
-    console.log(login);
     if (login?.message) {
       return { message: login.message };
     } else {

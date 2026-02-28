@@ -87,7 +87,6 @@ export class UserService {
   async findMembers(userId: string) {
     const boards = await this.board.find({ userId }).populate('members');
 
-    console.log(boards.map((el) => el.members));
 
     return boards.map((el) => el.members);
   }
